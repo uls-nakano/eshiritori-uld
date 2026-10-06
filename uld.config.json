@@ -1,0 +1,23 @@
+{
+  "$comment": "ULD の機械チェックとループ script が読むリポジトリ構成。省いた項目は uld-kit の既定値（lib/config.mjs）が使われる",
+  "branches": {
+    "integration": "develop",
+    "protected": ["main", "develop"]
+  },
+  "directories": {
+    "rules": "rules",
+    "designs": ".designs",
+    "usecases": "docs/usecases",
+    "journeys": "docs/journeys",
+    "domainDocs": "docs/domain",
+    "testRoots": ["packages", "apps", "tests"]
+  },
+  "indexFiles": ["CLAUDE.md", "AGENTS.md"],
+  "domainSources": {
+    "packagesDirectory": "packages",
+    "domainSubdirectory": "src/domain"
+  },
+  "limits": {
+    "maxAffectedFiles": 15
+  }
+}

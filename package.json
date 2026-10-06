@@ -1,0 +1,17 @@
+{
+  "name": "eshiritori-uld",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm run check:branch && npm run check:kit && npm run check:rules && npm run check:index && npm run check:trace && npm run check:model-trace",
+    "check:fast": "npm run check:kit && npm run check:rules && npm run check:index && npm run check:trace",
+    "check:kit": "node scripts/uld/uld.mjs check-kit",
+    "check:rules": "node scripts/uld/uld.mjs check-rules",
+    "check:index": "node scripts/uld/uld.mjs check-index",
+    "check:branch": "node scripts/uld/uld.mjs check-branch",
+    "check:trace": "node scripts/uld/uld.mjs check-trace",
+    "check:model-trace": "node scripts/uld/uld.mjs check-model-trace",
+    "loop:stats": "node scripts/uld/uld.mjs loop-stats"
+  }
+}

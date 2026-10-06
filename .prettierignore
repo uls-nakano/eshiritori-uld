@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.designs
+rules/design-records/templates
+
+# uld-kit が配る uld CLI と lock（kit 所有。プロジェクトの lint・整形の対象外。版ずれは check:kit が検出）
+scripts/uld
+uld-kit.lock.json

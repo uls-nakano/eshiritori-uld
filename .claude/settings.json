@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "out=$(git -C \"${CLAUDE_PROJECT_DIR:-.}\" status --porcelain -- \"*loop-events.jsonl\" 2>/dev/null); [ -z \"$out\" ] || jq -cn --arg o \"$out\" '{systemMessage: (\"ループイベントログに未コミットの変更が残っています。実装ループの計測が欠けるので、uld finish-task でコミットするか内容を確認してください。\\n\" + $o)}'",
+            "timeout": 10,
+            "statusMessage": "[uld] ループイベントの取りこぼしを確認"
+          }
+        ]
+      }
+    ]
+  }
+}
