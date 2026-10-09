@@ -159,7 +159,7 @@
 
 ### Phase 12: 画面の組み込み
 
-- [ ] 1.12.1 ページの配線（トップ・`/r/{部屋コード}`）、API と WebSocket の呼び出し、プレイヤートークンの保存
+- [x] 1.12.1 ページの配線（トップ・`/r/{部屋コード}`）、API と WebSocket の呼び出し、プレイヤートークンの保存
   - 観測点: story（参加画面のページで URL の部屋コードが入力済みになること、トークンを保存済みのブラウザでは待機室が出ること）
   - 変更ファイル: `apps/web/src/{main.tsx,App.tsx}`、`apps/web/src/pages/{TopPage,RoomPage}.tsx` と `RoomPage.stories.tsx`、`apps/web/src/api/{apiClient.ts,apiClient.test.ts,roomSocket.ts}`、`apps/web/src/storage/{playerTokenStore.ts,playerTokenStore.test.ts}`（10 件。画面は 2 つの URL だけなのでルーターのライブラリは使わず、WebSocket もブラウザ標準の API を使うため、依存は増やさない）
   - 同期する生き資料: `docs/architecture/README.md`（画面の配信や URL の構成が変わった場合）

@@ -187,7 +187,8 @@
 | S-01-15 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
 | S-01-16 | `tests/integration/uc-01-create-room.integration.test.ts`、`tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-17 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
-| S-01-03 | `tests/integration/uc-02-join-room.integration.test.ts`（参加の API と全員への一覧の通知まで。招待 URL からの参加画面は 1.12.1 で記入） | 一部実装 |
+| S-01-03 | `tests/integration/uc-02-join-room.integration.test.ts`、`apps/web/src/pages/RoomPage.stories.tsx`（参加の API と全員への一覧の通知、招待 URL からの参加画面） | 実装済み |
+| 差分確認（招待 URL の開き直しで待機室に戻る） | `apps/web/src/pages/RoomPage.stories.tsx` | 実装済み |
 | S-01-04 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-06 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-11 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
@@ -196,5 +197,5 @@
 | S-01-14 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | 差分確認（7 人の部屋への同時参加） | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-18 | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |
-| S-01-05 | `tests/integration/uc-03-start-game.integration.test.ts`、`apps/web/src/components/WaitingRoom.stories.tsx`、`apps/web/src/components/DrawingOrderView.stories.tsx`（開始の API と全員への通知まで、待機室と描く順番の表示。画面の切り替えは 1.12.1 で記入） | 一部実装 |
+| S-01-05 | `tests/integration/uc-03-start-game.integration.test.ts`、`apps/web/src/components/WaitingRoom.stories.tsx`、`apps/web/src/components/DrawingOrderView.stories.tsx`、`apps/web/src/pages/RoomPage.stories.tsx`（開始の API と全員への通知、待機室と描く順番の表示、画面の切り替え） | 実装済み |
 | 差分確認（二重の開始） | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |
