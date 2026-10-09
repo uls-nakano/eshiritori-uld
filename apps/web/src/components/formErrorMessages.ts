@@ -28,6 +28,8 @@ export function describeFormError(code: ErrorResponse["code"]): {
         place: "nickname",
         message: "同じニックネームの人がいます。別のニックネームにしてください",
       };
+    case "room.not_enough_members":
+      return { place: "form", message: "2 人以上で始められます" };
     default:
       return {
         place: "form",

@@ -196,5 +196,5 @@
 | S-01-14 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | 差分確認（7 人の部屋への同時参加） | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-18 | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |
-| S-01-05 | `tests/integration/uc-03-start-game.integration.test.ts`（開始の API と全員への通知まで。画面の切り替えと並びの表示は 1.11.1・1.12.1 で記入。開始の操作がホストにだけ出ることは 1.11.1 で記入） | 一部実装 |
+| S-01-05 | `tests/integration/uc-03-start-game.integration.test.ts`、`apps/web/src/components/WaitingRoom.stories.tsx`、`apps/web/src/components/DrawingOrderView.stories.tsx`（開始の API と全員への通知まで、待機室と描く順番の表示。画面の切り替えは 1.12.1 で記入） | 一部実装 |
 | 差分確認（二重の開始） | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |
