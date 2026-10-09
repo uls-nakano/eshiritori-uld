@@ -1,13 +1,5 @@
 import type { Result } from "@eshiritori/shared-kernel";
-import {
-  failure,
-  getLogger,
-  isFailure,
-  isSuccess,
-  MemoryLogger,
-  setLogger,
-  success,
-} from "@eshiritori/shared-kernel";
+import { failure, getLogger, MemoryLogger, setLogger, success } from "@eshiritori/shared-kernel";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ROOM_CREATED_AT, sequenceRandom } from "../../fixtures/roomFixtures";
@@ -63,7 +55,7 @@ describe("execute", () => {
 
     const result = await createRoomWith(repository).execute({ nickname: "たろう", roundCount: 3 });
 
-    expect(isSuccess(result)).toBe(true);
+    expect(result.playerId).toEqual(expect.any(String));
     const [room] = repository.saved;
     expect(repository.saved).toHaveLength(1);
     expect(room?.members).toHaveLength(1);
@@ -77,7 +69,7 @@ describe("execute", () => {
     const result = await createRoomWith(repository).execute({ nickname: "たろう", roundCount: 3 });
 
     const room = repository.saved[0];
-    expect(isSuccess(result) && result.value.room).toEqual({
+    expect(result.room).toEqual({
       code: room?.code.value,
       roundCount: 3,
       hostPlayerId: room?.host.playerId.value,
@@ -91,8 +83,8 @@ describe("execute", () => {
     const result = await createRoomWith(repository).execute({ nickname: "たろう", roundCount: 1 });
 
     const room = repository.saved[0];
-    expect(isSuccess(result) && result.value.playerId).toBe(room?.host.playerId.value);
-    expect(isSuccess(result) && result.value.playerToken).toBe(room?.host.token.value);
+    expect(result.playerId).toBe(room?.host.playerId.value);
+    expect(result.playerToken).toBe(room?.host.token.value);
   });
 
   it("前後の空白を除いたニックネームで作る", async () => {
@@ -110,7 +102,7 @@ describe("execute", () => {
 
     const token = repository.saved[0]?.host.token.value ?? "";
     expect(token).not.toBe("");
-    expect(isSuccess(result) && JSON.stringify(result.value.room)).not.toContain(token);
+    expect(JSON.stringify(result.room)).not.toContain(token);
   });
 
   it("最後に更新した時刻を時計の時刻にする", async () => {
@@ -126,7 +118,7 @@ describe("execute", () => {
 
     const result = await createRoomWith(repository).execute({ nickname: "たろう", roundCount });
 
-    expect(isSuccess(result)).toBe(true);
+    expect(result.playerId).toEqual(expect.any(String));
   });
 
   it.each([
@@ -136,9 +128,9 @@ describe("execute", () => {
   ])("ニックネーム「$nickname」のとき $code を返して保存しない", async ({ nickname, code }) => {
     const repository = new FakeRoomRepository();
 
-    const result = await createRoomWith(repository).execute({ nickname, roundCount: 1 });
-
-    expect(isFailure(result) && result.error.code).toBe(code);
+    await expect(createRoomWith(repository).execute({ nickname, roundCount: 1 })).rejects.toThrow(
+      expect.objectContaining({ code: code }),
+    );
     expect(repository.attempts).toBe(0);
   });
 
@@ -147,9 +139,9 @@ describe("execute", () => {
     async (roundCount) => {
       const repository = new FakeRoomRepository();
 
-      const result = await createRoomWith(repository).execute({ nickname: "たろう", roundCount });
-
-      expect(isFailure(result) && result.error.code).toBe("room.round_count_out_of_range");
+      await expect(
+        createRoomWith(repository).execute({ nickname: "たろう", roundCount }),
+      ).rejects.toThrow(expect.objectContaining({ code: "room.round_count_out_of_range" }));
       expect(repository.attempts).toBe(0);
     },
   );
@@ -157,9 +149,9 @@ describe("execute", () => {
   it("ニックネームと周回数がどちらも誤りのとき、ニックネームの誤りを返す", async () => {
     const repository = new FakeRoomRepository();
 
-    const result = await createRoomWith(repository).execute({ nickname: "", roundCount: 0 });
-
-    expect(isFailure(result) && result.error.code).toBe("room.nickname_empty");
+    await expect(
+      createRoomWith(repository).execute({ nickname: "", roundCount: 0 }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.nickname_empty" }));
   });
 
   describe("保存が 1 回衝突したとき", () => {
@@ -173,7 +165,7 @@ describe("execute", () => {
 
       expect(repository.attempts).toBe(2);
       expect(repository.saved).toHaveLength(1);
-      expect(isSuccess(result) && result.value.room.code).toBe(repository.saved[0]?.code.value);
+      expect(result.room.code).toBe(repository.saved[0]?.code.value);
     });
 
     it("重なった部屋コードを warn の log に出す", async () => {

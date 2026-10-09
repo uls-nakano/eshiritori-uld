@@ -1,6 +1,7 @@
 import type { components } from "@eshiritori/api-contract";
-import type { CreateRoom, RoomError } from "@eshiritori/room";
-import { getLogger, isFailure } from "@eshiritori/shared-kernel";
+import type { CreateRoom } from "@eshiritori/room";
+import { RoomError } from "@eshiritori/room";
+import { getLogger } from "@eshiritori/shared-kernel";
 import { Hono } from "hono";
 
 /** API が使う use case。 */
@@ -64,17 +65,10 @@ export function createApp(useCases: ApiUseCases): Hono {
         400,
       );
     }
-    const result = await useCases.createRoom.execute({
+    const { room, playerId, playerToken } = await useCases.createRoom.execute({
       nickname: body.nickname,
       roundCount: body.roundCount,
     });
-    if (isFailure(result)) {
-      return c.json(
-        { code: result.error.code, detail: result.error.detail } satisfies ErrorResponse,
-        statusOf(result.error),
-      );
-    }
-    const { room, playerId, playerToken } = result.value;
     return c.json(
       {
         room: {
@@ -93,6 +87,13 @@ export function createApp(useCases: ApiUseCases): Hono {
   });
 
   app.onError((error, c) => {
+    // 業務上の失敗（RoomError）は domain が throw 直前に記録しているので、ここではエラーコードを応答に変えるだけ
+    if (error instanceof RoomError) {
+      return c.json(
+        { code: error.code, detail: error.detail } satisfies ErrorResponse,
+        statusOf(error),
+      );
+    }
     getLogger().error("API の処理中に予期しない例外が起きました", {
       method: c.req.method,
       path: c.req.path,
