@@ -149,7 +149,7 @@
 
 ### Phase 11: 待機室とゲーム開始の表示
 
-- [ ] 1.11.1 待機室とゲーム開始の表示部品と story（`WaitingRoom`、`DrawingOrderView`）
+- [x] 1.11.1 待機室とゲーム開始の表示部品と story（`WaitingRoom`、`DrawingOrderView`）
   - 観測点: story（play 関数で表示の基準を確かめる）
   - 変更ファイル: `apps/web/src/components/{WaitingRoom,DrawingOrderView}.tsx` とそれぞれの `.stories.tsx`（4 件）
   - 同期する生き資料: なし
