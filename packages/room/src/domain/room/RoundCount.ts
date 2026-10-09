@@ -1,6 +1,3 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, success } from "@eshiritori/shared-kernel";
-
 import { RoomError } from "../../errors/RoomError";
 
 /** 周回数の下限（UC-01 要件 5）。 */
@@ -16,17 +13,15 @@ export class RoundCount {
     this.#value = value;
   }
 
-  /** 検証して周回数を作る。不正な入力は RoomError の Result で返す。 */
-  static create(value: number): Result<RoundCount, RoomError> {
+  /** 検証して周回数を作る。不正な入力は RoomError を throw する。 */
+  static create(value: number): RoundCount {
     if (!Number.isInteger(value) || value < MIN_ROUND_COUNT || value > MAX_ROUND_COUNT) {
-      return failure(
-        new RoomError(
-          "round_count_out_of_range",
-          `Round count must be an integer from ${String(MIN_ROUND_COUNT)} to ${String(MAX_ROUND_COUNT)}.`,
-        ),
+      throw new RoomError(
+        "round_count_out_of_range",
+        `Round count must be an integer from ${String(MIN_ROUND_COUNT)} to ${String(MAX_ROUND_COUNT)}.`,
       );
     }
-    return success(new RoundCount(value));
+    return new RoundCount(value);
   }
 
   /** 周回数。 */
