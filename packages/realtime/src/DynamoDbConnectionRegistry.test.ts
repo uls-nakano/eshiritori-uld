@@ -18,7 +18,11 @@ const dynamoClient = new DynamoDBClient({
 });
 const client = DynamoDBDocumentClient.from(dynamoClient);
 const registry = new DynamoDbConnectionRegistry(client, connectionTable.name);
-const CONNECTED_AT = new Date("2026-01-01T00:00:00.000Z");
+/**
+ * 登録した時刻。実行時の現在時刻にする。
+ * 固定の過去日時にすると TTL がすでに過ぎており、DynamoDB Local の TTL の掃除がテスト中に項目を消して不安定になる。
+ */
+const CONNECTED_AT = new Date(Math.floor(Date.now() / 1000) * 1000);
 
 beforeAll(async () => {
   try {
