@@ -161,7 +161,7 @@ export function createApp(useCases: ApiUseCases): Hono {
   });
 
   app.onError((error, c) => {
-    // 業務上の失敗（RoomError）は domain が throw 直前に記録しているので、ここではエラーコードを応答に変えるだけ
+    // 業務上の失敗（RoomError）は throw した domain か use case が直前に記録しているので、ここではエラーコードを応答に変えるだけ
     if (error instanceof RoomError) {
       return roomErrorResponse(c, error);
     }
