@@ -1,3 +1,5 @@
+import { getLogger } from "@eshiritori/shared-kernel";
+
 import { RoomError } from "../../errors/RoomError";
 
 /** ニックネームの上限（見た目の文字数。UC-01 要件 4）。 */
@@ -22,9 +24,11 @@ export class Nickname {
   static create(value: string): Nickname {
     const trimmed = value.trim();
     if (trimmed === "") {
+      getLogger().error("ニックネームが空です", { value });
       throw new RoomError("nickname_empty", "Nickname must not be empty.");
     }
     if (countGraphemes(trimmed) > MAX_NICKNAME_LENGTH) {
+      getLogger().error("ニックネームが長すぎます", { value });
       throw new RoomError(
         "nickname_too_long",
         `Nickname must be at most ${String(MAX_NICKNAME_LENGTH)} characters.`,

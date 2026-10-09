@@ -1,5 +1,4 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, success } from "@eshiritori/shared-kernel";
+import { getLogger } from "@eshiritori/shared-kernel";
 
 import { RoomError } from "../../errors/RoomError";
 import type { RandomSource } from "../random/RandomSource";
@@ -32,17 +31,16 @@ export class RoomCode {
 
   /**
    * 入力された文字列から部屋コードを作る。全角半角・前後の空白・大文字小文字の違いはそろえる。
-   * 書式の誤りは room_not_found の RoomError で返す。
+   * 書式の誤りは room_not_found の RoomError を throw する。
    */
-  static create(value: string): Result<RoomCode, RoomError> {
+  static create(value: string): RoomCode {
     const trimmed = value.normalize("NFKC").trim();
     if (!CODE_FORMAT.test(trimmed)) {
-      return failure(
-        new RoomError("room_not_found", "Room code must be 6 alphanumeric characters."),
-      );
+      getLogger().error("部屋コードが英数字 6 文字ではありません", { value });
+      throw new RoomError("room_not_found", "Room code must be 6 alphanumeric characters.");
     }
     // 大文字化は検証の後に行う（ß が SS になるなど、英字でない文字が化けて通るのを防ぐ）
-    return success(new RoomCode(trimmed.toUpperCase()));
+    return new RoomCode(trimmed.toUpperCase());
   }
 
   /** 大文字にそろえた部屋コードの文字列。 */
