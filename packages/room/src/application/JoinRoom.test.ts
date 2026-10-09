@@ -15,6 +15,8 @@ import type { Room } from "../domain/room/Room";
 import type { RoomCode } from "../domain/room/RoomCode";
 import type { RoomRepository, RoomSaveConflict } from "../domain/room/RoomRepository";
 import { JoinRoom } from "./JoinRoom";
+import type { RoomEventPublisher } from "./RoomEventPublisher";
+import type { RoomSnapshotDto } from "./RoomSnapshotDto";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -47,11 +49,38 @@ class FakeRoomRepository implements RoomRepository {
   }
 }
 
+/** 知らせた写しを記録する fake。failWith を指定すると、知らせるときにその例外を投げる。 */
+class RecordingRoomEventPublisher implements RoomEventPublisher {
+  readonly memberJoined: RoomSnapshotDto[] = [];
+  readonly gameStarted: RoomSnapshotDto[] = [];
+  readonly #failWith: Error | undefined;
+
+  constructor(failWith?: Error) {
+    this.#failWith = failWith;
+  }
+
+  publishMemberJoined(room: RoomSnapshotDto): Promise<void> {
+    return this.#record(this.memberJoined, room);
+  }
+
+  publishGameStarted(room: RoomSnapshotDto): Promise<void> {
+    return this.#record(this.gameStarted, room);
+  }
+
+  #record(target: RoomSnapshotDto[], room: RoomSnapshotDto): Promise<void> {
+    target.push(room);
+    return this.#failWith === undefined ? Promise.resolve() : Promise.reject(this.#failWith);
+  }
+}
+
 const NOW = new Date(ROOM_CREATED_AT.getTime() + HOUR);
 const clock = { now: (): Date => NOW };
 
-function joinRoomWith(repository: RoomRepository): JoinRoom {
-  return new JoinRoom(repository, sequenceRandom(), clock);
+function joinRoomWith(
+  repository: RoomRepository,
+  publisher: RoomEventPublisher = new RecordingRoomEventPublisher(),
+): JoinRoom {
+  return new JoinRoom(repository, sequenceRandom(), clock, publisher);
 }
 
 /** 読み直しのたびに、参加で書き換わっていない部屋を返すための部屋の列。 */
@@ -317,6 +346,73 @@ describe("execute", () => {
         .catch(() => undefined);
 
       expect(repository.attempts).toBe(10);
+    });
+  });
+
+  describe("通知", () => {
+    it("加わったとき、返す写しと同じ写しでメンバーが加わったことを 1 回知らせる", async () => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      const result = await joinRoomWith(
+        new FakeRoomRepository([roomWith(["たろう"])]),
+        publisher,
+      ).execute({
+        roomCode: "ABC123",
+        nickname: "はなこ",
+      });
+
+      expect(publisher.memberJoined).toHaveLength(1);
+      expect(publisher.memberJoined[0]).toBe(isSuccess(result) ? result.value.room : undefined);
+      expect(publisher.gameStarted).toHaveLength(0);
+    });
+
+    it.each([
+      {
+        label: "満員",
+        room: () => roomWith(["a", "b", "c", "d", "e", "f", "g", "h"]),
+        nickname: "はなこ",
+      },
+      { label: "ゲーム中", room: startedRoom, nickname: "じろう" },
+      { label: "名前の重複", room: () => roomWith(["たろう"]), nickname: "たろう" },
+      { label: "部屋が無い", room: () => undefined, nickname: "はなこ" },
+    ])("入れなかったとき（$label）、知らせない", async ({ room, nickname }) => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      const result = await joinRoomWith(new FakeRoomRepository([room()]), publisher).execute({
+        roomCode: "ABC123",
+        nickname,
+      });
+
+      expect(isFailure(result)).toBe(true);
+      expect(publisher.memberJoined).toHaveLength(0);
+    });
+
+    it("保存が 1 回衝突して読み直したとき、知らせるのは保存できた後の 1 回だけ", async () => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      await joinRoomWith(new FakeRoomRepository(freshRooms(2), 1), publisher).execute({
+        roomCode: "ABC123",
+        nickname: "はなこ",
+      });
+
+      expect(publisher.memberJoined).toHaveLength(1);
+    });
+
+    it("知らせるのに失敗しても、加わった結果を返し、部屋コード付きの warn の log を出す", async () => {
+      const publisher = new RecordingRoomEventPublisher(new Error("送れない"));
+
+      const result = await joinRoomWith(
+        new FakeRoomRepository([roomWith(["たろう"])]),
+        publisher,
+      ).execute({
+        roomCode: "ABC123",
+        nickname: "はなこ",
+      });
+
+      expect(isSuccess(result)).toBe(true);
+      const warnings = logger.entries.filter((entry) => entry.level === "warn");
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]?.context).toMatchObject({ roomCode: "ABC123" });
     });
   });
 });

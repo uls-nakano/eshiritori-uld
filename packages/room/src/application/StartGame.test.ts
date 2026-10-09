@@ -15,7 +15,33 @@ import type { RandomSource } from "../domain/random/RandomSource";
 import type { Room } from "../domain/room/Room";
 import type { RoomCode } from "../domain/room/RoomCode";
 import type { RoomRepository, RoomSaveConflict } from "../domain/room/RoomRepository";
+import type { RoomEventPublisher } from "./RoomEventPublisher";
+import type { RoomSnapshotDto } from "./RoomSnapshotDto";
 import { StartGame } from "./StartGame";
+
+/** 知らせた写しを記録する fake。failWith を指定すると、知らせるときにその例外を投げる。 */
+class RecordingRoomEventPublisher implements RoomEventPublisher {
+  readonly memberJoined: RoomSnapshotDto[] = [];
+  readonly gameStarted: RoomSnapshotDto[] = [];
+  readonly #failWith: Error | undefined;
+
+  constructor(failWith?: Error) {
+    this.#failWith = failWith;
+  }
+
+  publishMemberJoined(room: RoomSnapshotDto): Promise<void> {
+    return this.#record(this.memberJoined, room);
+  }
+
+  publishGameStarted(room: RoomSnapshotDto): Promise<void> {
+    return this.#record(this.gameStarted, room);
+  }
+
+  #record(target: RoomSnapshotDto[], room: RoomSnapshotDto): Promise<void> {
+    target.push(room);
+    return this.#failWith === undefined ? Promise.resolve() : Promise.reject(this.#failWith);
+  }
+}
 
 const HOUR = 60 * 60 * 1000;
 const NOW = new Date(ROOM_CREATED_AT.getTime() + HOUR);
@@ -53,8 +79,12 @@ class FakeRoomRepository implements RoomRepository {
 /** ホストのトークンは roomWith が毎回同じ値で作る。 */
 const HOST_TOKEN = roomWith(["たろう"]).host.token.value;
 
-function startGameWith(repository: RoomRepository, random: RandomSource): StartGame {
-  return new StartGame(repository, random, clock);
+function startGameWith(
+  repository: RoomRepository,
+  random: RandomSource,
+  publisher: RoomEventPublisher = new RecordingRoomEventPublisher(),
+): StartGame {
+  return new StartGame(repository, random, clock, publisher);
 }
 
 function startedRoom(nicknames: readonly string[]): Room {
@@ -364,6 +394,66 @@ describe("execute", () => {
         .catch(() => undefined);
 
       expect(repository.attempts).toBe(10);
+    });
+  });
+
+  describe("通知", () => {
+    it("始まったとき、返す写し（描く順番）と同じ写しでゲームが始まったことを 1 回知らせる", async () => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      const result = await startGameWith(
+        new FakeRoomRepository([roomWith(["たろう", "はなこ", "じろう"])]),
+        fixedRandom([2, 0]),
+        publisher,
+      ).execute({ roomCode: "ABC123", playerToken: HOST_TOKEN });
+
+      expect(publisher.gameStarted).toHaveLength(1);
+      expect(publisher.gameStarted[0]).toBe(isSuccess(result) ? result.value.room : undefined);
+      expect(publisher.gameStarted[0]?.status).toBe("started");
+      expect(publisher.memberJoined).toHaveLength(0);
+    });
+
+    it("既に始まっていたとき、知らせない", async () => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      await startGameWith(
+        new FakeRoomRepository([startedRoom(["たろう", "はなこ"])]),
+        fixedRandom([]),
+        publisher,
+      ).execute({ roomCode: "ABC123", playerToken: HOST_TOKEN });
+
+      expect(publisher.gameStarted).toHaveLength(0);
+    });
+
+    it.each([
+      { label: "ホストでない", room: () => roomWith(["たろう", "はなこ"]), token: "someone-else" },
+      { label: "人数が足りない", room: () => roomWith(["たろう"]), token: HOST_TOKEN },
+    ])("$label とき、知らせない", async ({ room, token }) => {
+      const publisher = new RecordingRoomEventPublisher();
+
+      const result = await startGameWith(
+        new FakeRoomRepository([room()]),
+        fixedRandom([0]),
+        publisher,
+      ).execute({ roomCode: "ABC123", playerToken: token });
+
+      expect(isFailure(result)).toBe(true);
+      expect(publisher.gameStarted).toHaveLength(0);
+    });
+
+    it("知らせるのに失敗しても、始まった結果を返し、部屋コード付きの warn の log を出す", async () => {
+      const publisher = new RecordingRoomEventPublisher(new Error("送れない"));
+
+      const result = await startGameWith(
+        new FakeRoomRepository([roomWith(["たろう", "はなこ"])]),
+        fixedRandom([0]),
+        publisher,
+      ).execute({ roomCode: "ABC123", playerToken: HOST_TOKEN });
+
+      expect(isSuccess(result)).toBe(true);
+      const warnings = logger.entries.filter((entry) => entry.level === "warn");
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]?.context).toMatchObject({ roomCode: "ABC123" });
     });
   });
 });

@@ -1,6 +1,8 @@
 import type { components } from "@eshiritori/api-contract";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import type { RoomSocket } from "./support/connectWebSocket";
+import { connectWebSocket } from "./support/connectWebSocket";
 import type { SeededRoom } from "./support/seedRoom";
 import { seedRoom } from "./support/seedRoom";
 import type { TestServer } from "./support/startServer";
@@ -21,6 +23,21 @@ beforeAll(async () => {
 afterAll(async () => {
   await server.close();
 });
+
+const openSockets: RoomSocket[] = [];
+
+afterEach(() => {
+  for (const socket of openSockets.splice(0)) {
+    socket.close();
+  }
+});
+
+/** 部屋のメンバーとして通知の接続を開く。テストの後に閉じる。 */
+async function connect(roomCode: string, playerToken: string): Promise<RoomSocket> {
+  const socket = await connectWebSocket(server.baseUrl, roomCode, playerToken);
+  openSockets.push(socket);
+  return socket;
+}
 
 /** 部屋のメンバーのトークンで、ゲームを始める。トークンが無ければ付けない。 */
 function startGame(
@@ -150,5 +167,44 @@ describe("POST /rooms/{roomCode}/start", () => {
     expect(b.status).toBe(200);
     expect(nicknamesOf(b.body.room)).toEqual(nicknamesOf(a.body.room));
     expect(nicknamesOf(await roomStateOf(room))).toEqual(nicknamesOf(a.body.room));
+  });
+});
+
+describe("WebSocket の通知", () => {
+  it("UC-03 要件 2 / UC-03 要件 3: ホストが始めると、メンバー全員にゲームが始まった部屋が 1 秒以内に届き、描く順番の並びが全員で同じになる", async () => {
+    // 前提: たろう、はなこ、じろうの待機室で、3 人とも通知を受けられる
+    const room = await seedRoom({ nicknames: ["たろう", "はなこ", "じろう"] });
+    const sockets = await Promise.all(
+      room.members.map((member) => connect(room.code, member.playerToken)),
+    );
+
+    // 操作: たろうが開始する
+    // 1 秒は操作の直前から数える（待ちを先に始める）
+    const pending = Promise.all(sockets.map((socket) => socket.next(1000)));
+    const started = await startGame(room, room.members[0]?.playerToken);
+    const notifications = await pending;
+
+    // 期待: 3 人とも game_started で始まった部屋を受け取り、並びが開始の応答と同じ
+    expect(started.status).toBe(200);
+    for (const notification of notifications) {
+      expect(notification.type).toBe("game_started");
+      expect(notification.room.status).toBe("started");
+      expect(nicknamesOf(notification.room)).toEqual(nicknamesOf(started.body.room));
+    }
+  });
+
+  it("UC-03 要件 2: 始められなかった要求では届かず、その後に始まった通知だけが届く", async () => {
+    // 前提: たろうとはなこの待機室で、はなこが通知を受けられる
+    const room = await seedRoom({ nicknames: ["たろう", "はなこ"] });
+    const hanako = await connect(room.code, room.members[1]?.playerToken ?? "");
+
+    // 操作: はなこが開始して断られ、その後にたろうが開始する
+    const rejected = await startGame(room, room.members[1]?.playerToken);
+    await startGame(room, room.members[0]?.playerToken);
+    const notification = await hanako.next(1000);
+
+    // 期待: 最初に届く通知は game_started（断られた要求の通知は無い）
+    expect(rejected.status).toBe(403);
+    expect(notification.type).toBe("game_started");
   });
 });

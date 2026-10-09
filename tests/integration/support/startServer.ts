@@ -1,8 +1,5 @@
-import { Server } from "node:http";
-
 import { DescribeTableCommand } from "@aws-sdk/client-dynamodb";
-import { composeApp, createDynamoDbClient, readApiConfig } from "@eshiritori/api";
-import { serve } from "@hono/node-server";
+import { createDynamoDbClient, readApiConfig, startApi } from "@eshiritori/api";
 
 /** 結合テストが相手にする、待ち受け中の API サーバー。 */
 export interface TestServer {
@@ -21,13 +18,13 @@ export interface TestServer {
 /** DB の表が使えることを確かめる。使えなければ起動手順を案内して throw する。 */
 async function assertTableReady(config: ReturnType<typeof readApiConfig>): Promise<void> {
   try {
-    await createDynamoDbClient(config).send(
-      new DescribeTableCommand({ TableName: config.roomTableName }),
-    );
+    const client = createDynamoDbClient(config);
+    await client.send(new DescribeTableCommand({ TableName: config.roomTableName }));
+    await client.send(new DescribeTableCommand({ TableName: config.connectionTableName }));
   } catch (error) {
     const name = error instanceof Error ? error.name : "unknown";
     throw new Error(
-      `DynamoDB Local に接続できないか、部屋の表がありません。\`npm run db:up\` を実行してください（${name}）`,
+      `DynamoDB Local に接続できないか、部屋の表か接続の表がありません。\`npm run db:up\` を実行してください（${name}）`,
       { cause: error },
     );
   }
@@ -37,22 +34,8 @@ async function assertTableReady(config: ReturnType<typeof readApiConfig>): Promi
 export async function startServer(): Promise<TestServer> {
   const config = readApiConfig(process.env);
   await assertTableReady(config);
-  const app = composeApp(config);
-
-  const server = await new Promise<Server>((resolve) => {
-    const started = serve({ fetch: app.fetch, port: 0 }, () => {
-      // serve の戻り値は union 型だが、createServer を指定しない限り node:http の Server になる。実体で確かめて絞る
-      if (!(started instanceof Server)) {
-        throw new Error("Expected serve() to return a node:http Server.");
-      }
-      resolve(started);
-    });
-  });
-  const address = server.address();
-  if (address === null || typeof address === "string") {
-    throw new Error("Expected the server to listen on a TCP port.");
-  }
-  const baseUrl = `http://localhost:${String(address.port)}`;
+  const api = await startApi({ ...config, port: 0 });
+  const baseUrl = `http://localhost:${String(api.port)}`;
 
   return {
     baseUrl,
@@ -83,17 +66,6 @@ export async function startServer(): Promise<TestServer> {
       // postJson と同じ理由のキャスト
       return { status: response.status, body: (await response.json()) as TBody };
     },
-    close(): Promise<void> {
-      return new Promise((resolve, reject) => {
-        server.closeAllConnections();
-        server.close((error) => {
-          if (error === undefined) {
-            resolve();
-          } else {
-            reject(error);
-          }
-        });
-      });
-    },
+    close: () => api.close(),
   };
 }

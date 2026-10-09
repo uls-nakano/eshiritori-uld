@@ -7,6 +7,7 @@ import { RoomCode } from "../domain/room/RoomCode";
 import type { RoomRepository } from "../domain/room/RoomRepository";
 import { RoomError } from "../errors/RoomError";
 import type { Clock } from "./Clock";
+import type { RoomEventPublisher } from "./RoomEventPublisher";
 import type { RoomSnapshotDto } from "./RoomSnapshotDto";
 import { toRoomSnapshotDto } from "./RoomSnapshotDto";
 
@@ -38,11 +39,18 @@ export class JoinRoom {
   readonly #repository: RoomRepository;
   readonly #random: RandomSource;
   readonly #clock: Clock;
+  readonly #publisher: RoomEventPublisher;
 
-  constructor(repository: RoomRepository, random: RandomSource, clock: Clock) {
+  constructor(
+    repository: RoomRepository,
+    random: RandomSource,
+    clock: Clock,
+    publisher: RoomEventPublisher,
+  ) {
     this.#repository = repository;
     this.#random = random;
     this.#clock = clock;
+    this.#publisher = publisher;
   }
 
   /** 部屋コードの部屋にニックネームで加わる。入れなければ RoomError の Result で返す。 */
@@ -70,8 +78,18 @@ export class JoinRoom {
       }
       const saved = await this.#repository.save(room);
       if (isSuccess(saved)) {
+        const snapshot = toRoomSnapshotDto(room);
+        // 保存は済んでいるので、通知の失敗は入れなかったことにしない（入り直すと nickname_taken になる）
+        try {
+          await this.#publisher.publishMemberJoined(snapshot);
+        } catch (error) {
+          getLogger().warn("メンバーが加わったことの通知に失敗しました", {
+            roomCode: code.value.value,
+            error,
+          });
+        }
         return success({
-          room: toRoomSnapshotDto(room),
+          room: snapshot,
           playerId: joined.value.playerId.value,
           playerToken: joined.value.token.value,
         });

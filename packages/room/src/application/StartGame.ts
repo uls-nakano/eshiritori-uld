@@ -7,6 +7,7 @@ import { RoomCode } from "../domain/room/RoomCode";
 import type { RoomRepository } from "../domain/room/RoomRepository";
 import { RoomError } from "../errors/RoomError";
 import type { Clock } from "./Clock";
+import type { RoomEventPublisher } from "./RoomEventPublisher";
 import type { RoomSnapshotDto } from "./RoomSnapshotDto";
 import { toRoomSnapshotDto } from "./RoomSnapshotDto";
 
@@ -34,11 +35,18 @@ export class StartGame {
   readonly #repository: RoomRepository;
   readonly #random: RandomSource;
   readonly #clock: Clock;
+  readonly #publisher: RoomEventPublisher;
 
-  constructor(repository: RoomRepository, random: RandomSource, clock: Clock) {
+  constructor(
+    repository: RoomRepository,
+    random: RandomSource,
+    clock: Clock,
+    publisher: RoomEventPublisher,
+  ) {
     this.#repository = repository;
     this.#random = random;
     this.#clock = clock;
+    this.#publisher = publisher;
   }
 
   /** トークンの持ち主がホストの部屋のゲームを始める。始められなければ RoomError の Result で返す。 */
@@ -67,7 +75,17 @@ export class StartGame {
       }
       const saved = await this.#repository.save(room);
       if (isSuccess(saved)) {
-        return success({ room: toRoomSnapshotDto(room) });
+        const snapshot = toRoomSnapshotDto(room);
+        // 保存は済んでいるので、通知の失敗は開始の失敗にしない
+        try {
+          await this.#publisher.publishGameStarted(snapshot);
+        } catch (error) {
+          getLogger().warn("ゲームが始まったことの通知に失敗しました", {
+            roomCode: code.value.value,
+            error,
+          });
+        }
+        return success({ room: snapshot });
       }
       // 衝突はほかの書き込みが先に成功したということ。読み直して、集約の判断からやり直す
       getLogger().warn("ゲームの開始がほかの書き込みと重なったため読み直します", {

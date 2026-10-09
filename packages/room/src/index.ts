@@ -8,6 +8,7 @@ export type { GetRoomInput, GetRoomOutput } from "./application/GetRoom";
 export { GetRoom } from "./application/GetRoom";
 export type { JoinRoomInput, JoinRoomOutput } from "./application/JoinRoom";
 export { JoinRoom } from "./application/JoinRoom";
+export type { RoomEventPublisher } from "./application/RoomEventPublisher";
 export type { MemberDto, RoomSnapshotDto } from "./application/RoomSnapshotDto";
 export type { StartGameInput, StartGameOutput } from "./application/StartGame";
 export { StartGame } from "./application/StartGame";

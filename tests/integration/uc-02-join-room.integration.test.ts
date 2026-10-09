@@ -1,6 +1,8 @@
 import type { components } from "@eshiritori/api-contract";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import type { RoomSocket } from "./support/connectWebSocket";
+import { connectWebSocket } from "./support/connectWebSocket";
 import type { SeededRoom } from "./support/seedRoom";
 import { seedRoom } from "./support/seedRoom";
 import type { TestServer } from "./support/startServer";
@@ -22,6 +24,21 @@ beforeAll(async () => {
 afterAll(async () => {
   await server.close();
 });
+
+const openSockets: RoomSocket[] = [];
+
+afterEach(() => {
+  for (const socket of openSockets.splice(0)) {
+    socket.close();
+  }
+});
+
+/** 部屋のメンバーとして通知の接続を開く。テストの後に閉じる。 */
+async function connect(roomCode: string, playerToken: string): Promise<RoomSocket> {
+  const socket = await connectWebSocket(server.baseUrl, roomCode, playerToken);
+  openSockets.push(socket);
+  return socket;
+}
 
 /** API で部屋を作る。 */
 async function createRoom(nickname = "たろう"): Promise<CreateRoomResponse> {
@@ -330,4 +347,99 @@ describe("POST /rooms/{roomCode}/members", () => {
       expect(await nicknamesOf(room)).toEqual(["たろう"]);
     },
   );
+});
+
+describe("WebSocket の通知", () => {
+  it("UC-02 要件 3: 待機室にいるメンバー全員に、加わったメンバーを含む一覧が 1 秒以内に届く", async () => {
+    // 前提: たろうとはなこが待機室にいて、2 人とも通知を受けられる
+    const room = await seedRoom({ nicknames: ["たろう", "はなこ"] });
+    const [taro, hanako] = await Promise.all(
+      room.members.map((member) => connect(room.code, member.playerToken)),
+    );
+
+    // 操作: じろうが部屋コードで入る
+    // 1 秒は操作の直前から数える（待ちを先に始める）
+    const pending = Promise.all([taro?.next(1000), hanako?.next(1000)]);
+    const joined = await joinRoom(room.code, "じろう");
+    const [forTaro, forHanako] = await pending;
+
+    // 期待: 2 人とも、じろうを含む 3 人の一覧を member_joined で受け取る
+    expect(joined.status).toBe(201);
+    for (const notification of [forTaro, forHanako]) {
+      expect(notification?.type).toBe("member_joined");
+      expect(notification?.room.members.map((member) => member.nickname)).toEqual([
+        "たろう",
+        "はなこ",
+        "じろう",
+      ]);
+    }
+  });
+
+  it("UC-02 要件 3: 届く一覧にはプレイヤートークンが含まれない", async () => {
+    // 前提: たろうが待機室で通知を受けられる
+    const room = await seedRoom({ nicknames: ["たろう", "はなこ"] });
+    const taro = await connect(room.code, room.members[0]?.playerToken ?? "");
+
+    // 操作: じろうが入り、たろうが一覧を受け取る
+    const joined = await joinRoom(room.code, "じろう");
+    const notification = await taro.next(1000);
+
+    // 期待: 受け取った本文に、どのメンバーのトークンも含まれない
+    const serialized = JSON.stringify([taro.connected, notification]);
+    for (const token of [
+      ...room.members.map((member) => member.playerToken),
+      joined.body.player.playerToken,
+    ]) {
+      expect(serialized).not.toContain(token);
+    }
+  });
+
+  it("UC-02 要件 3: 入れなかった要求では一覧は届かず、その後に入れた要求の一覧だけが届く", async () => {
+    // 前提: たろうが待機室で通知を受けられる
+    const room = await seedRoom({ nicknames: ["たろう"] });
+    const taro = await connect(room.code, room.members[0]?.playerToken ?? "");
+
+    // 操作: 名前が重複して入れず、その後に別の名前で入る
+    const rejected = await joinRoom(room.code, "たろう");
+    await joinRoom(room.code, "はなこ");
+    const notification = await taro.next(1000);
+
+    // 期待: 最初に届く通知は、入れた後の一覧（入れなかった要求の通知は無い）
+    expect(rejected.status).toBe(409);
+    expect(notification.type).toBe("member_joined");
+    expect(notification.room.members.map((member) => member.nickname)).toEqual([
+      "たろう",
+      "はなこ",
+    ]);
+  });
+
+  it("UC-02 要件 3: 部屋のメンバーでない人は、通知を受ける接続ができない", async () => {
+    // 前提: ほかの部屋のメンバーがいる。対象の部屋はたろうだけ
+    const other = await seedRoom({ nicknames: ["さぶろう"] });
+    const room = await seedRoom({ nicknames: ["たろう"] });
+
+    // 操作: ほかの部屋のトークン、トークン無し、無い部屋コードで接続しようとする
+    // 期待: どれも接続できない
+    await expect(connect(room.code, other.members[0]?.playerToken ?? "")).rejects.toThrow();
+    await expect(connect(room.code, "")).rejects.toThrow();
+    await expect(connect("ZZZZZZ", room.members[0]?.playerToken ?? "")).rejects.toThrow();
+  });
+
+  it("UC-02 要件 3: 接続した直後に、いまのメンバー一覧が届く", async () => {
+    // 前提: たろうとはなこの部屋
+    const room = await seedRoom({ nicknames: ["たろう", "はなこ"] });
+
+    // 操作: はなこが部屋コードを小文字にして接続する
+    const hanako = await connect(room.code.toLowerCase(), room.members[1]?.playerToken ?? "");
+
+    // 期待: 接続直後の connected で、いまの 2 人の一覧が届く
+    expect(hanako.connected.type).toBe("connected");
+    expect(hanako.connected.room.members.map((member) => member.nickname)).toEqual([
+      "たろう",
+      "はなこ",
+    ]);
+    // 小文字で接続しても、その後の通知が届く（正規化した部屋コードで登録されている）
+    await joinRoom(room.code, "じろう");
+    expect((await hanako.next(1000)).type).toBe("member_joined");
+  });
 });
