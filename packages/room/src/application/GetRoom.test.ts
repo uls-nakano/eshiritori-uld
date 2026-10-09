@@ -1,4 +1,5 @@
 import type { Result } from "@eshiritori/shared-kernel";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
 import { describe, expect, it } from "vitest";
 
 import { ROOM_CREATED_AT, roomWith, sequenceRandom } from "../../fixtures/roomFixtures";
@@ -128,6 +129,30 @@ describe("execute", () => {
       );
     },
   );
+
+  it("not_member を返す前に、部屋コードだけを error のログに出し、トークンは出さない", async () => {
+    const original = getLogger();
+    const logger = new MemoryLogger();
+    setLogger(logger);
+    try {
+      const { useCase } = getRoomWith(roomWith(["たろう"]));
+
+      await expect(
+        useCase.execute({ roomCode: "ABC123", playerToken: "secret-token-value" }),
+      ).rejects.toThrow(expect.objectContaining({ code: "room.not_member" }));
+
+      expect(logger.entries).toEqual([
+        {
+          level: "error",
+          message: "部屋のメンバーでない人が部屋の状態を取ろうとしました",
+          context: { roomCode: "ABC123" },
+        },
+      ]);
+      expect(JSON.stringify(logger.entries)).not.toContain("secret-token-value");
+    } finally {
+      setLogger(original);
+    }
+  });
 
   it("期限切れの部屋には、メンバーのトークンでも room_not_found を返す", async () => {
     const room = roomWith(["たろう"], new Date(NOW.getTime() - 24 * HOUR));
