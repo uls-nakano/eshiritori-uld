@@ -58,7 +58,7 @@ module.exports = {
       severity: "error",
       comment: "Domain は外部ライブラリに依存しない",
       from: { path: "^packages/[^/]+/src/domain/", pathNot: TEST },
-      to: { dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-no-pkg"] },
+      to: { dependencyTypes: ["core", "npm", "npm-dev", "npm-optional", "npm-peer", "npm-no-pkg"] },
     },
     {
       name: "domain-not-to-outer-layers",

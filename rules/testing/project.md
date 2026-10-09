@@ -5,3 +5,7 @@
 ## 実 DB を使う単体テストの分離（上書き）
 
 標準の「実 DB を使う単体テストは、テストごとにトランザクションを張り終了時に必ずロールバックして分離する」を、本プロジェクトでは「テストごとに別の識別子（部屋コードなど）を使い、テスト同士が同じ項目を触らない形で分離する」に置き換える。理由: DB に DynamoDB を使う（[docs/architecture](../../docs/architecture/README.md)）。DynamoDB にはロールバックできるトランザクションがない。削除クリーンアップを使わない点は標準と同じで、同じ識別子への再実行が同じ結果に収束するように書く。
+
+## 実 DB を使うテストの前提
+
+実 DB を使う単体テスト（と後続の結合テスト）は、先に `npm run db:up` で DynamoDB Local を起動して表を作ってから実行する。`npm run check` と `npm run check:fast` は DB を起動しない。DynamoDB Local は記憶域を持たない設定（`compose.yaml` の `-inMemory`）なので、コンテナを起動し直したら `npm run db:up` をもう一度実行する。止めるときは `npm run db:down`。DB が無いと、実 DB を使うテストは起動の手順を案内して落ちる。

@@ -12,7 +12,7 @@
     "lint:fast": "eslint . --max-warnings 0 --cache --cache-location node_modules/.cache/eslint/",
     "lint:fix": "eslint . --fix",
     "lint:unused": "knip",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p scripts --noEmit",
     "check:boundaries": "depcruise packages --config .dependency-cruiser.cjs",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
@@ -22,6 +22,9 @@
     "check:branch": "node scripts/uld/uld.mjs check-branch",
     "check:trace": "node scripts/uld/uld.mjs check-trace",
     "check:model-trace": "node scripts/uld/uld.mjs check-model-trace",
+    "db:up": "docker compose up -d dynamodb && npm run db:create-tables",
+    "db:create-tables": "tsx scripts/create-tables.ts",
+    "db:down": "docker compose down",
     "loop:stats": "node scripts/uld/uld.mjs loop-stats"
   },
   "engines": {
@@ -48,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
     "@vitest/coverage-v8": "^5.0.3",
     "dependency-cruiser": "^18.5.0",
     "eslint": "^10.12.0",
@@ -55,8 +59,12 @@
     "knip": "^6.40.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1148.0"
   }
 }

@@ -13,6 +13,7 @@
 ## 検証
 
 ```bash
+npm run db:up        # 初回とコンテナの再起動後（DynamoDB Local の起動と表の作成。実 DB を使うテストの前提）
 npm run check        # コミット前・プッシュ前
 npm run check:fast   # 実装ループの中
 ```

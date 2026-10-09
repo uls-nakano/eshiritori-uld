@@ -15,7 +15,7 @@ export default tseslint.config(
     ],
   },
   {
-    files: ["packages/**/*.ts"],
+    files: ["packages/**/*.ts", "scripts/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.strictTypeChecked],
     languageOptions: {
       parserOptions: {
