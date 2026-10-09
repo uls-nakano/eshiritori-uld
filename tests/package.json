@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "test:integration": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1148.0",
     "@eshiritori/api": "*",
     "@eshiritori/api-contract": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0"
   }
 }

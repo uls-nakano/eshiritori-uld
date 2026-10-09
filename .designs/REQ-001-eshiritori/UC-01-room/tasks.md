@@ -169,7 +169,7 @@
 
 ### Phase 13: 統合確認（E2E）
 
-- [ ] 1.13.1 E2E-01-01（招待 URL で 1 人を誘って始める）
+- [x] 1.13.1 E2E-01-01（招待 URL で 1 人を誘って始める）
   - 観測点: E2E
   - 変更ファイル: `tests/e2e/{playwright.config.ts,globalSetup.ts,e2e-01-gather-and-start.e2e.test.ts}`、`tests/package.json`、`package.json`（`test:e2e`）、`package-lock.json`（6 件）
   - 同期する生き資料: なし

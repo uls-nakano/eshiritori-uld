@@ -6,7 +6,8 @@
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "test:stories": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "vite"
   },
   "dependencies": {
     "@eshiritori/api-contract": "*",
@@ -20,6 +21,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^30.1.2",
     "storybook": "^10.6.1",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
   }
 }

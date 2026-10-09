@@ -8,4 +8,4 @@
 
 ## 実 DB を使うテストの前提
 
-実 DB を使う単体テスト（と後続の結合テスト）は、先に `npm run db:up` で DynamoDB Local を起動して表を作ってから実行する。`npm run check` と `npm run check:fast` は DB を起動しない。DynamoDB Local は記憶域を持たない設定（`compose.yaml` の `-inMemory`）なので、コンテナを起動し直したら `npm run db:up` をもう一度実行する。止めるときは `npm run db:down`。DB が無いと、実 DB を使うテストは起動の手順を案内して落ちる。
+実 DB を使う単体テスト（と後続の結合テスト）は、先に `npm run db:up` で DynamoDB Local を起動して表を作ってから実行する。`npm run check` と `npm run check:fast` は DB を起動しない。DynamoDB Local は記憶域を持たない設定（`compose.yaml` の `-inMemory`）なので、コンテナを起動し直したら `npm run db:up` をもう一度実行する。止めるときは `npm run db:down`。DB が無いと、実 DB を使うテストは起動の手順を案内して落ちる。E2E（`npm run test:e2e`）も先に `npm run db:up` が要る。Playwright の Chromium が無い機械では `npx playwright install chromium` で入れる。
