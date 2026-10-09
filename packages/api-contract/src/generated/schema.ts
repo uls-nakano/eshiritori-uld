@@ -114,6 +114,15 @@ export interface components {
     StartGameResponse: {
       room: components["schemas"]["RoomSnapshot"];
     };
+    /** @description WebSocket で部屋のメンバーに送る通知。接続は GET /ws?roomCode=<部屋コード>&playerToken=<プレイヤートークン> で開く（ブラウザの WebSocket はヘッダーを付けられないのでクエリで渡す）。部屋が無い・期限切れなら 404、 メンバーでなければ 403 で接続を拒否する。接続できると、直後に type が connected の通知でいまの部屋が届き、 以後は部屋が変わるたびに届く。通知にプレイヤートークンは含まれない。 */
+    RoomNotification: {
+      /**
+       * @description connected は接続直後のいまの部屋、member_joined はメンバーが加わった、game_started はゲームが始まった。
+       * @enum {string}
+       */
+      type: "connected" | "member_joined" | "game_started";
+      room: components["schemas"]["RoomSnapshot"];
+    };
     RoomSnapshot: {
       /** @description 部屋コード。英大文字と数字 6 文字。 */
       code: string;

@@ -51,7 +51,7 @@ function roomErrorResponse(c: Context, error: RoomError): Response {
 }
 
 /** use case の部屋の写しを、契約の形に詰め替える。 */
-function toRoomSnapshot(dto: RoomSnapshotDto): components["schemas"]["RoomSnapshot"] {
+export function toRoomSnapshot(dto: RoomSnapshotDto): components["schemas"]["RoomSnapshot"] {
   return {
     code: dto.code,
     roundCount: dto.roundCount,

@@ -129,7 +129,7 @@
 
 ### Phase 9: 変化の通知
 
-- [ ] 1.9.1 待機室とゲーム開始の通知の配線（`RoomEventPublisher` port と実装、WebSocket の入口、通知の形の契約）
+- [x] 1.9.1 待機室とゲーム開始の通知の配線（`RoomEventPublisher` port と実装、WebSocket の入口、通知の形の契約）
   - 観測点: 結合テスト（WebSocket で通知を受ける）`uc-02-join-room.integration.test.ts` と `uc-03-start-game.integration.test.ts` への追記
   - 変更ファイル: `packages/room/src/application/{RoomEventPublisher.ts,JoinRoom.ts,StartGame.ts}`、`packages/room/src/index.ts`、`packages/api-contract/{openapi.yaml,src/generated/schema.ts}`（通知の形）、`apps/api/src/{RealtimeRoomEventPublisher.ts,webSocketEndpoint.ts,composition.ts,main.ts}`、`tests/integration/support/connectWebSocket.ts`、`tests/integration/{uc-02-join-room,uc-03-start-game}.integration.test.ts`、`scenarios.md`（結合テストへの対応）（14 件。WebSocket サーバーは `packages/realtime` が公開する口を使い、テストの接続は Node の標準の WebSocket を使うため、依存は増やさない）
   - 同期する生き資料: `docs/architecture/README.md`（通知の経路が「操作と通知の経路を分ける」と変わった場合）
