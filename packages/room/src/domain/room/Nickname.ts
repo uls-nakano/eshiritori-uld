@@ -1,6 +1,3 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, success } from "@eshiritori/shared-kernel";
-
 import { RoomError } from "../../errors/RoomError";
 
 /** ニックネームの上限（見た目の文字数。UC-01 要件 4）。 */
@@ -21,21 +18,19 @@ export class Nickname {
     this.#value = value;
   }
 
-  /** 前後の空白を除いて検証し、ニックネームを作る。不正な入力は RoomError の Result で返す。 */
-  static create(value: string): Result<Nickname, RoomError> {
+  /** 前後の空白を除いて検証し、ニックネームを作る。不正な入力は RoomError を throw する。 */
+  static create(value: string): Nickname {
     const trimmed = value.trim();
     if (trimmed === "") {
-      return failure(new RoomError("nickname_empty", "Nickname must not be empty."));
+      throw new RoomError("nickname_empty", "Nickname must not be empty.");
     }
     if (countGraphemes(trimmed) > MAX_NICKNAME_LENGTH) {
-      return failure(
-        new RoomError(
-          "nickname_too_long",
-          `Nickname must be at most ${String(MAX_NICKNAME_LENGTH)} characters.`,
-        ),
+      throw new RoomError(
+        "nickname_too_long",
+        `Nickname must be at most ${String(MAX_NICKNAME_LENGTH)} characters.`,
       );
     }
-    return success(new Nickname(trimmed));
+    return new Nickname(trimmed);
   }
 
   /** 前後の空白を除いたニックネームの文字列。 */

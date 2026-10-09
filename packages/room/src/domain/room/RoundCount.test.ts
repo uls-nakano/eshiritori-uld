@@ -1,18 +1,17 @@
-import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
 import { describe, expect, it } from "vitest";
 
+import { RoomError } from "../../errors/RoomError";
 import { RoundCount } from "./RoundCount";
 
 function make(input: number): RoundCount {
-  const result = RoundCount.create(input);
-  if (!isSuccess(result)) throw new Error("expected success");
-  return result.value;
+  return RoundCount.create(input);
 }
 
 function expectRejected(input: number): void {
-  const result = RoundCount.create(input);
-  if (!isFailure(result)) throw new Error("expected failure");
-  expect(result.error.code).toBe("room.round_count_out_of_range");
+  expect(() => RoundCount.create(input)).toThrow(RoomError);
+  expect(() => RoundCount.create(input)).toThrow(
+    expect.objectContaining({ code: "room.round_count_out_of_range" }),
+  );
 }
 
 describe("create", () => {
