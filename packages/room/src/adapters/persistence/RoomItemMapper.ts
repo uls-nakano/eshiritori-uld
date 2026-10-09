@@ -9,7 +9,6 @@ import { Room } from "../../domain/room/Room";
 import { RoomCode } from "../../domain/room/RoomCode";
 import { RoomStatus } from "../../domain/room/RoomStatus";
 import { RoundCount } from "../../domain/room/RoundCount";
-import { RoomError } from "../../errors/RoomError";
 
 /** 部屋が最後の更新から期限切れになるまでの時間（ミリ秒）。ドメインの 24 時間と同じ値で、テストが突き合わせる。 */
 const ROOM_LIFETIME_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -57,17 +56,14 @@ function failItem(item: unknown, attribute: string): never {
 }
 
 /**
- * 値オブジェクトを作る。保存された値が業務の規則を満たさない（RoomError）なら、
+ * 値オブジェクトを作る。保存された値が業務の規則を満たさず値オブジェクトが RoomError を throw したら、
  * 利用者の入力の誤りではなく保存データの破損なので、外れた属性名を記録して Error を投げる。
  */
 function restoreValue<T>(item: unknown, attribute: string, create: () => T): T {
   try {
     return create();
-  } catch (error) {
-    if (error instanceof RoomError) {
-      return failItem(item, attribute);
-    }
-    throw error;
+  } catch {
+    return failItem(item, attribute);
   }
 }
 
