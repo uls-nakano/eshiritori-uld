@@ -72,7 +72,7 @@
 
 ### Phase 4: domain の集約
 
-- [ ] 1.4.1 部屋集約とメンバー・部屋リポジトリの port（`Room`、`Member`、`RoomRepository`）
+- [x] 1.4.1 部屋集約とメンバー・部屋リポジトリの port（`Room`、`Member`、`RoomRepository`）
   - 観測点: domain の単体テスト
   - 変更ファイル: `packages/room/src/domain/room/{Room,Member}.ts` とそれぞれの `.test.ts`、`packages/room/src/domain/room/RoomRepository.ts`、`packages/room/src/domain/room/fixtures/roomFixtures.ts`、`packages/room/src/index.ts`（7 件）
   - 同期する生き資料: `docs/domain/room/`（実装で図と変わった場合）
