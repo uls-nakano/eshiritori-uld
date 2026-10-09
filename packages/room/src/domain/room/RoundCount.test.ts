@@ -1,18 +1,30 @@
-import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
-import { describe, expect, it } from "vitest";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { RoomError } from "../../errors/RoomError";
 import { RoundCount } from "./RoundCount";
 
+const originalLogger = getLogger();
+let memoryLogger: MemoryLogger;
+
+beforeEach(() => {
+  memoryLogger = new MemoryLogger();
+  setLogger(memoryLogger);
+});
+
+afterEach(() => {
+  setLogger(originalLogger);
+});
+
 function make(input: number): RoundCount {
-  const result = RoundCount.create(input);
-  if (!isSuccess(result)) throw new Error("expected success");
-  return result.value;
+  return RoundCount.create(input);
 }
 
 function expectRejected(input: number): void {
-  const result = RoundCount.create(input);
-  if (!isFailure(result)) throw new Error("expected failure");
-  expect(result.error.code).toBe("room.round_count_out_of_range");
+  expect(() => RoundCount.create(input)).toThrow(RoomError);
+  expect(() => RoundCount.create(input)).toThrow(
+    expect.objectContaining({ code: "room.round_count_out_of_range" }),
+  );
 }
 
 describe("create", () => {
@@ -37,6 +49,13 @@ describe("create", () => {
   it("NaN と Infinity を拒否する", () => {
     expectRejected(Number.NaN);
     expectRejected(Number.POSITIVE_INFINITY);
+  });
+
+  it("拒否する前に、入力された値を error のログに出す", () => {
+    expect(() => RoundCount.create(6)).toThrow(RoomError);
+    expect(memoryLogger.entries).toEqual([
+      { level: "error", message: "周回数が 1〜5 の整数ではありません", context: { value: 6 } },
+    ]);
   });
 });
 
