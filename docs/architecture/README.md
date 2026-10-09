@@ -63,7 +63,7 @@ flowchart TB
 
 | 役割 | ローカル | AWS（別の要求でデプロイ） |
 | --- | --- | --- |
-| 画面の配信 | Vite の開発サーバー | S3 + CloudFront |
+| 画面の配信 | Vite の開発サーバー（`/rooms` と `/ws` を `apps/api` へ中継し、画面は同じオリジンへ要求する） | S3 + CloudFront（API・WebSocket への振り分けはデプロイの要求で決める） |
 | 操作（HTTP） | `apps/api` の Node プロセス（Hono） | API Gateway HTTP API + Lambda（同じ Hono アプリ） |
 | 通知（WebSocket） | 同じ Node プロセス内の `ws` サーバー | API Gateway WebSocket API + Lambda（接続・切断）と、Management API による送信 |
 | DB | DynamoDB Local（Docker） | DynamoDB（オンデマンド） |
@@ -90,6 +90,7 @@ flowchart TB
 
 ログインはしません（[docs/product](../product/README.md)）。部屋を作る・入るときに、サーバーが推測できない**プレイヤートークン**を発行し、ブラウザに保存させます。以降の操作（開始など）と WebSocket の接続はこのトークンで本人を確かめます。
 
+- トークンはブラウザの `localStorage` に部屋コードごとに保存します。画面の URL は `/`（トップ）と `/r/{部屋コード}`（招待 URL）で、`/r/{部屋コード}` を開いたとき保存済みなら参加画面を出さずに待機室を出します
 - 公開されるプレイヤー ID（メンバー一覧に出る）とトークン（本人だけが持つ）を分けます。ID だけで本人とみなすと、ほかのメンバーになりすませるためです
 - 同じブラウザで招待 URL を開き直したときに、同じプレイヤーとして待機室に戻す動き（UC-02 要件 10）と、後続の「接続が切れて戻る」は、このトークンで実現します
 
