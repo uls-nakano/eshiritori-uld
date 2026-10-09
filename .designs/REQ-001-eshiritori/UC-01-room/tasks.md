@@ -52,7 +52,7 @@
   - 入力: 1.1.1
   - 外す（未実装）ID: なし
   - _シナリオ: S-01-14、S-01-15、S-01-16、S-01-17_ / _要件: UC-01 要件 4・5、UC-02 要件 8・9 の判断部分_
-- [ ] 1.2.2 共通の Logger（`Logger`、`getLogger`、`ConsoleLogger`、`MemoryLogger`）
+- [x] 1.2.2 共通の Logger（`Logger`、`getLogger`、`ConsoleLogger`、`MemoryLogger`）
   - 観測点: shared kernel の単体テスト
   - 変更ファイル: `packages/shared-kernel/src/{Logger.ts,getLogger.ts,getLogger.test.ts,ConsoleLogger.ts,ConsoleLogger.test.ts,MemoryLogger.ts,MemoryLogger.test.ts,index.ts}`（8 件）
   - 同期する生き資料: なし
