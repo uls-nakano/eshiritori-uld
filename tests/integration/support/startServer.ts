@@ -1,5 +1,6 @@
-import { DescribeTableCommand } from "@aws-sdk/client-dynamodb";
-import { createDynamoDbClient, readApiConfig, startApi } from "@eshiritori/api";
+import { readApiConfig, startApi } from "@eshiritori/api";
+
+import { assertTablesReady } from "../../support/assertTablesReady";
 
 /** 結合テストが相手にする、待ち受け中の API サーバー。 */
 export interface TestServer {
@@ -15,25 +16,10 @@ export interface TestServer {
   close(): Promise<void>;
 }
 
-/** DB の表が使えることを確かめる。使えなければ起動手順を案内して throw する。 */
-async function assertTableReady(config: ReturnType<typeof readApiConfig>): Promise<void> {
-  try {
-    const client = createDynamoDbClient(config);
-    await client.send(new DescribeTableCommand({ TableName: config.roomTableName }));
-    await client.send(new DescribeTableCommand({ TableName: config.connectionTableName }));
-  } catch (error) {
-    const name = error instanceof Error ? error.name : "unknown";
-    throw new Error(
-      `DynamoDB Local に接続できないか、部屋の表か接続の表がありません。\`npm run db:up\` を実行してください（${name}）`,
-      { cause: error },
-    );
-  }
-}
-
 /** production と同じ composition で、空いているポートに API を起動する。 */
 export async function startServer(): Promise<TestServer> {
   const config = readApiConfig(process.env);
-  await assertTableReady(config);
+  await assertTablesReady(config);
   const api = await startApi({ ...config, port: 0 });
   const baseUrl = `http://localhost:${String(api.port)}`;
 

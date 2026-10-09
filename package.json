@@ -31,7 +31,9 @@
     "storybook": "npm run storybook -w @eshiritori/web",
     "test:stories": "npm run test:stories -w @eshiritori/web",
     "test:integration": "npm run test:integration -w @eshiritori/tests",
-    "check:db": "run-s --continue-on-error coverage test:integration"
+    "check:db": "run-s --continue-on-error coverage test:integration",
+    "start:web": "npm run start -w @eshiritori/web",
+    "test:e2e": "npm run test:e2e -w @eshiritori/tests"
   },
   "engines": {
     "node": ">=22"
@@ -63,7 +65,10 @@
       },
       "tests": {
         "entry": [
-          "integration/**/*.integration.test.ts"
+          "integration/**/*.integration.test.ts",
+          "e2e/playwright.config.ts",
+          "e2e/globalSetup.ts",
+          "e2e/**/*.e2e.test.ts"
         ],
         "project": [
           "**/*.ts"

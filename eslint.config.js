@@ -47,7 +47,13 @@ export default tseslint.config(
   },
   {
     // meta・設定の default export が要るファイル
-    files: ["apps/web/**/*.stories.tsx", "apps/web/.storybook/*.ts", "apps/web/vite.config.ts"],
+    files: [
+      "apps/web/**/*.stories.tsx",
+      "apps/web/.storybook/*.ts",
+      "apps/web/vite.config.ts",
+      "tests/e2e/playwright.config.ts",
+      "tests/e2e/globalSetup.ts",
+    ],
     rules: { "no-restricted-exports": "off" },
   },
   {
