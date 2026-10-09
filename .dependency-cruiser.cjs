@@ -47,6 +47,14 @@ module.exports = {
       to: { path: "^packages/", pathNot: "^packages/(room|shared-kernel)/" },
     },
     {
+      name: "realtime-depends-only-on-shared-kernel",
+      severity: "error",
+      comment:
+        "realtime が依存してよい package は shared-kernel だけ（業務の判断を持たない技術 module）",
+      from: { path: "^packages/realtime/" },
+      to: { path: "^packages/", pathNot: "^packages/(realtime|shared-kernel)/" },
+    },
+    {
       name: "errors-not-to-layers",
       severity: "error",
       comment: "errors は各層から import される。逆向きを許さない",

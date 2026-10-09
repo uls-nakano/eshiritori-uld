@@ -57,6 +57,7 @@
 
 - `docs/` — 目的（`product/`）・アーキテクチャ（`architecture/`）・ユースケース記述（`usecases/`）・ジャーニー（`journeys/`）・ドメインモデルと用語集（`domain/`）
 - `packages/room/` — 部屋の作成・参加・ゲームの開始を扱う業務 module（`domain` `application` `adapters` `errors` を置く）
+- `packages/realtime/` — WebSocket の接続の登録・検索（DynamoDB）と送信。ローカルは `ws` で接続を受けて送る（AWS 版の送信はデプロイの要求で足す）
 - `apps/api/` — HTTP API の入口と adapter の注入（composition root）。ローカル起動は `npm run start:api`
 - `packages/api-contract/` — OpenAPI specification と、そこから生成する型（`npm run generate:api`）
 - `tests/` — HTTP 結合テスト（`tests/integration/`）。後に E2E

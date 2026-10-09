@@ -119,7 +119,7 @@
 
 ### Phase 8: 接続の管理
 
-- [ ] 1.8.1 WebSocket の接続の登録と送信（`packages/realtime`: `DynamoDbConnectionRegistry`、`LocalWebSocketSender`）
+- [x] 1.8.1 WebSocket の接続の登録と送信（`packages/realtime`: `DynamoDbConnectionRegistry`、`LocalWebSocketSender`）
   - 観測点: 実 DB（DynamoDB Local）に接続する adapter の単体テストと、送信 adapter の単体テスト
   - 変更ファイル: `packages/realtime/{package.json,tsconfig.json,src/index.ts,src/DynamoDbConnectionRegistry.ts,src/DynamoDbConnectionRegistry.test.ts,src/LocalWebSocketSender.ts,src/LocalWebSocketSender.test.ts}`、`scripts/create-tables.ts`（接続表）、`.dependency-cruiser.cjs`、`package-lock.json`、`CLAUDE.md`・`AGENTS.md`（構成）（12 件）
   - 同期する生き資料: `CLAUDE.md` / `AGENTS.md` の「構成」、`docs/architecture/README.md`（接続の管理が「ローカルと AWS の構成の対応」と変わった場合）

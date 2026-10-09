@@ -5,6 +5,7 @@ import {
   ListTablesCommand,
   UpdateTimeToLiveCommand,
 } from "@aws-sdk/client-dynamodb";
+import { connectionTable } from "@eshiritori/realtime";
 import { roomTable } from "@eshiritori/room";
 
 const client = new DynamoDBClient({
@@ -14,7 +15,7 @@ const client = new DynamoDBClient({
 });
 
 /** 作る表の定義の一覧。表を足す段はここに加える。 */
-const tables = [roomTable];
+const tables = [roomTable, connectionTable];
 
 /** DynamoDB Local が応答するまで待ち、既存の表の名前を返す。応答しなければ起動手順を案内して終了する。 */
 async function waitForDatabase(): Promise<string[]> {
