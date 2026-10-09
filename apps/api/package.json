@@ -1,0 +1,22 @@
+{
+  "name": "@eshiritori/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/composition.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1148.0",
+    "@aws-sdk/lib-dynamodb": "^3.1148.0",
+    "@eshiritori/api-contract": "*",
+    "@eshiritori/room": "*",
+    "@eshiritori/shared-kernel": "*",
+    "@hono/node-server": "^2.0.0",
+    "hono": "^4.0.0"
+  }
+}

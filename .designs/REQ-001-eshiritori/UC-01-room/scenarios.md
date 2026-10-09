@@ -182,4 +182,9 @@
 
 | シナリオ ID | 結合テスト | 状態 |
 | --- | --- | --- |
-| S-01-01〜S-01-18 | 設計フェーズで受け入れ基準 ID を採番した後に記入 | 未実装 |
+| S-01-01 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
+| S-01-02 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
+| S-01-15 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
+| S-01-16 | `tests/integration/uc-01-create-room.integration.test.ts`（作成時の長さのみ。参加時は 1.7.1 で記入） | 一部実装 |
+| S-01-17 | `tests/integration/uc-01-create-room.integration.test.ts` | 実装済み |
+| S-01-03〜S-01-06、S-01-11〜S-01-14、S-01-18 | 後続の段で記入 | 未実装 |

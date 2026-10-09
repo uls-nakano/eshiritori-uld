@@ -1,4 +1,10 @@
+export { DynamoDbRoomRepository } from "./adapters/persistence/DynamoDbRoomRepository";
 export { roomTable } from "./adapters/persistence/roomTable";
+export { CryptoRandomSource } from "./adapters/random/CryptoRandomSource";
+export type { Clock } from "./application/Clock";
+export type { CreateRoomInput, CreateRoomOutput } from "./application/CreateRoom";
+export { CreateRoom } from "./application/CreateRoom";
+export type { MemberDto, RoomSnapshotDto } from "./application/RoomSnapshotDto";
 export type { RoomRepository, RoomSaveConflict } from "./domain/room/RoomRepository";
 export { RoomError } from "./errors/RoomError";
 export type { RoomErrorCode } from "./errors/RoomErrorCode";

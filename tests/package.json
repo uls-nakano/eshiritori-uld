@@ -1,0 +1,16 @@
+{
+  "name": "@eshiritori/tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:integration": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1148.0",
+    "@eshiritori/api": "*",
+    "@eshiritori/api-contract": "*",
+    "@hono/node-server": "^2.0.0"
+  }
+}

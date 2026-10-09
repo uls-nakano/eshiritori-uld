@@ -15,7 +15,7 @@ export default tseslint.config(
     ],
   },
   {
-    files: ["packages/**/*.ts", "scripts/*.ts"],
+    files: ["packages/**/*.ts", "apps/**/*.ts", "tests/**/*.ts", "scripts/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.strictTypeChecked],
     languageOptions: {
       parserOptions: {
@@ -41,7 +41,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["eslint.config.js", "vitest.config.ts"],
+    files: ["eslint.config.js", "vitest.config.ts", "tests/vitest.config.ts"],
     extends: [tseslint.configs.disableTypeChecked],
     rules: { "no-restricted-exports": "off" },
   },

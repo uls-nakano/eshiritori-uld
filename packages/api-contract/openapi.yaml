@@ -1,0 +1,97 @@
+openapi: 3.1.0
+info:
+  title: eshiritori API
+  version: 0.0.0
+paths:
+  /rooms:
+    post:
+      operationId: createRoom
+      summary: 部屋を作る
+      description: 作った人がホストで、ただ 1 人のメンバーになった部屋を作る。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+      responses:
+        "201":
+          description: 部屋を作った。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRoomResponse"
+        "400":
+          description: 入力の誤り、または要求の形の誤り。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 予期しない失敗。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    CreateRoomRequest:
+      type: object
+      required: [nickname, roundCount]
+      properties:
+        nickname:
+          type: string
+          description: ホストのニックネーム。前後の空白を除いて 1〜10 文字（絵文字 1 つを 1 文字と数える）。範囲外は room.nickname_empty または room.nickname_too_long の 400 で返す。
+        roundCount:
+          type: integer
+          description: 周回数。1〜5 の整数。範囲外は room.round_count_out_of_range の 400 で返す。
+    CreateRoomResponse:
+      type: object
+      required: [room, player]
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+        player:
+          $ref: "#/components/schemas/PlayerCredential"
+    RoomSnapshot:
+      type: object
+      required: [code, roundCount, hostPlayerId, members]
+      properties:
+        code:
+          type: string
+          description: 部屋コード。英大文字と数字 6 文字。
+        roundCount:
+          type: integer
+        hostPlayerId:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomMember"
+    RoomMember:
+      type: object
+      required: [playerId, nickname]
+      properties:
+        playerId:
+          type: string
+        nickname:
+          type: string
+    PlayerCredential:
+      type: object
+      description: 応答を受けた本人だけが持つ資格。
+      required: [playerId, playerToken]
+      properties:
+        playerId:
+          type: string
+        playerToken:
+          type: string
+          description: 本人だけが持つ秘密。他のメンバーには配らない。
+    ErrorResponse:
+      type: object
+      required: [code, detail]
+      properties:
+        code:
+          type: string
+          description: "失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range など）、または request.invalid_json, request.invalid_body, server.internal_error。"
+        detail:
+          type: string
