@@ -1,8 +1,21 @@
-import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
-import { describe, expect, it } from "vitest";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { RoomError } from "../../errors/RoomError";
 import type { RandomSource } from "../random/RandomSource";
 import { RoomCode } from "./RoomCode";
+
+const originalLogger = getLogger();
+let memoryLogger: MemoryLogger;
+
+beforeEach(() => {
+  memoryLogger = new MemoryLogger();
+  setLogger(memoryLogger);
+});
+
+afterEach(() => {
+  setLogger(originalLogger);
+});
 
 function fixedRandom(values: readonly number[]): RandomSource & { readonly bounds: number[] } {
   const bounds: number[] = [];
@@ -20,15 +33,17 @@ function fixedRandom(values: readonly number[]): RandomSource & { readonly bound
 }
 
 function make(input: string): RoomCode {
-  const result = RoomCode.create(input);
-  if (!isSuccess(result)) throw new Error("expected success");
-  return result.value;
+  return RoomCode.create(input);
 }
 
 function errorCodeOf(input: string): string {
-  const result = RoomCode.create(input);
-  if (!isFailure(result)) throw new Error("expected failure");
-  return result.error.code;
+  try {
+    RoomCode.create(input);
+  } catch (error) {
+    if (error instanceof RoomError) return error.code;
+    throw error;
+  }
+  throw new Error("expected RoomError");
 }
 
 describe("generate", () => {
@@ -87,6 +102,17 @@ describe("create", () => {
     // 大文字化すると "SSK7Q2" / "IK7Q2X" となり、先に大文字化すると書式を通ってしまう入力
     expect(errorCodeOf("ßK7Q2")).toBe("room.room_not_found");
     expect(errorCodeOf("ıK7Q2X")).toBe("room.room_not_found");
+  });
+
+  it("拒否する前に、入力された値を error のログに出す", () => {
+    errorCodeOf("ab");
+    expect(memoryLogger.entries).toEqual([
+      {
+        level: "error",
+        message: "部屋コードが英数字 6 文字ではありません",
+        context: { value: "ab" },
+      },
+    ]);
   });
 });
 

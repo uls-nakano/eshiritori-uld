@@ -1,4 +1,4 @@
-import { getLogger, isFailure } from "@eshiritori/shared-kernel";
+import { getLogger } from "@eshiritori/shared-kernel";
 
 import { Member } from "../../domain/room/Member";
 import { Nickname } from "../../domain/room/Nickname";
@@ -9,6 +9,7 @@ import { Room } from "../../domain/room/Room";
 import { RoomCode } from "../../domain/room/RoomCode";
 import { RoomStatus } from "../../domain/room/RoomStatus";
 import { RoundCount } from "../../domain/room/RoundCount";
+import { RoomError } from "../../errors/RoomError";
 
 /** 部屋が最後の更新から期限切れになるまでの時間（ミリ秒）。ドメインの 24 時間と同じ値で、テストが突き合わせる。 */
 const ROOM_LIFETIME_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -53,6 +54,21 @@ function failItem(item: unknown, attribute: string): never {
     isRecord(item) && typeof item["roomCode"] === "string" ? item["roomCode"] : undefined;
   getLogger().error("保存された部屋の項目の形が正しくありません", { roomCode, attribute });
   throw new Error(`Stored room item is invalid: ${attribute}`);
+}
+
+/**
+ * 値オブジェクトを作る。保存された値が業務の規則を満たさない（RoomError）なら、
+ * 利用者の入力の誤りではなく保存データの破損なので、外れた属性名を記録して Error を投げる。
+ */
+function restoreValue<T>(item: unknown, attribute: string, create: () => T): T {
+  try {
+    return create();
+  } catch (error) {
+    if (error instanceof RoomError) {
+      return failItem(item, attribute);
+    }
+    throw error;
+  }
 }
 
 /** 形を確かめて項目として読む。外れた属性があれば記録して Error を投げる。 */
@@ -125,35 +141,28 @@ export class RoomItemMapper {
   toRoom(item: unknown): Room {
     const stored = readItem(item);
 
-    const code = RoomCode.create(stored.roomCode);
-    if (isFailure(code)) {
-      return failItem(item, "roomCode");
-    }
-    const roundCount = RoundCount.create(stored.roundCount);
-    if (isFailure(roundCount)) {
-      return failItem(item, "roundCount");
-    }
+    const code = restoreValue(item, "roomCode", () => RoomCode.create(stored.roomCode));
+    const roundCount = restoreValue(item, "roundCount", () => RoundCount.create(stored.roundCount));
     const lastUpdatedAt = new Date(stored.lastUpdatedAt);
     if (Number.isNaN(lastUpdatedAt.getTime())) {
       return failItem(item, "lastUpdatedAt");
     }
     const members = stored.members.map((member) => {
-      const nickname = Nickname.create(member.nickname);
-      if (isFailure(nickname)) {
-        return failItem(item, "members.nickname");
-      }
+      const nickname = restoreValue(item, "members.nickname", () =>
+        Nickname.create(member.nickname),
+      );
       return Member.restore(
         PlayerId.create(member.playerId),
         PlayerToken.create(member.token),
-        nickname.value,
+        nickname,
       );
     });
 
     return Room.restore({
-      code: code.value,
+      code,
       members,
       hostPlayerId: PlayerId.create(stored.hostPlayerId),
-      roundCount: roundCount.value,
+      roundCount,
       status: stored.status === "started" ? RoomStatus.started() : RoomStatus.waiting(),
       lastUpdatedAt,
       revision: Revision.restore(stored.revision),
