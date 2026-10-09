@@ -5,7 +5,7 @@
 
 ## このプロジェクト
 
-絵しりとり（前の人が描いた絵から言葉を読み取り、その言葉の末尾の音で始まる言葉を次の人が絵で描いてつなぐ遊び）を Web 上で遊ぶためのアプリケーションです。いまはリポジトリを立ち上げた直後で、ユースケース・ドメインモデル・実装はまだありません。最初の要求はシナリオフェーズ（`/uld-scenario`）から始めます。
+絵しりとり（前の人が描いた絵から言葉を読み取り、その言葉の末尾の音で始まる言葉を次の人が絵で描いてつなぐ遊び）を Web 上で遊ぶためのアプリケーションです。ユースケース記述とドメインモデルがあり、実装を始めた段階です。利用者から見える振る舞いの追加・変更は、シナリオフェーズ（`/uld-scenario`）から始めます。
 
 目的の定義は [docs/product/](docs/product/) を、現在の受け入れ基準（ユースケース記述）は [docs/usecases/](docs/usecases/) を、ユースケースを貫くジャーニー（E2E の対象）は [docs/journeys/](docs/journeys/) を参照してください。
 
@@ -53,9 +53,10 @@
 
 ## 構成
 
-層と package の置き場（予定を含む）・技術の選定・ローカルと AWS の対応は [docs/architecture/](docs/architecture/README.md) にあります（置き場の規約は [rules/architecture](rules/architecture/)）。package・app はまだありません。作った段で、ここに 1 行ずつ追記します。
+層と package の置き場（予定を含む）・技術の選定・ローカルと AWS の対応は [docs/architecture/](docs/architecture/README.md) にあります（置き場の規約は [rules/architecture](rules/architecture/)）。app はまだありません。package・app を作った段で、ここに 1 行ずつ追記します。
 
 - `docs/` — 目的（`product/`）・アーキテクチャ（`architecture/`）・ユースケース記述（`usecases/`）・ジャーニー（`journeys/`）・ドメインモデルと用語集（`domain/`）
+- `packages/shared-kernel/` — `DomainError` 基底・`Result` など、module をまたぐ最小限の共通物
 - `rules/` — 規約（標準 `standard.md` + プロジェクト `project.md`）
 - `.designs/` — 開発フローの記録（ログ資料）
 - `scripts/uld/` — uld-kit が配る `uld` CLI（kit 所有。直接編集しない）
