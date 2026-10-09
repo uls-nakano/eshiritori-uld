@@ -9,6 +9,8 @@ export interface TestServer {
   readonly baseUrl: string;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
   postJson<TBody>(path: string, body: unknown): Promise<{ status: number; body: TBody }>;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
+  getJson<TBody>(path: string, playerToken?: string): Promise<{ status: number; body: TBody }>;
   close(): Promise<void>;
 }
 
@@ -58,6 +60,14 @@ export async function startServer(): Promise<TestServer> {
         body: typeof body === "string" ? body : JSON.stringify(body),
       });
       // Response.json() は unknown を返す。生成型を指定して受けるための、テストのハーネスだけのキャスト
+      return { status: response.status, body: (await response.json()) as TBody };
+    },
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
+    async getJson<TBody>(path: string, playerToken?: string) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        headers: playerToken === undefined ? {} : { authorization: `Bearer ${playerToken}` },
+      });
+      // postJson と同じ理由のキャスト
       return { status: response.status, body: (await response.json()) as TBody };
     },
     close(): Promise<void> {

@@ -1,12 +1,16 @@
 import type { components } from "@eshiritori/api-contract";
-import type { CreateRoom } from "@eshiritori/room";
+import type { CreateRoom, GetRoom, JoinRoom, RoomSnapshotDto } from "@eshiritori/room";
 import { RoomError } from "@eshiritori/room";
-import { getLogger } from "@eshiritori/shared-kernel";
+import type { Result } from "@eshiritori/shared-kernel";
+import { failure, getLogger, isFailure, success } from "@eshiritori/shared-kernel";
+import type { Context } from "hono";
 import { Hono } from "hono";
 
 /** API が使う use case。 */
 export interface ApiUseCases {
   readonly createRoom: CreateRoom;
+  readonly joinRoom: JoinRoom;
+  readonly getRoom: GetRoom;
 }
 
 type ErrorResponse = components["schemas"]["ErrorResponse"];
@@ -18,6 +22,50 @@ function isCreateRoomRequest(body: unknown): body is components["schemas"]["Crea
   }
   const candidate = body as Record<string, unknown>;
   return typeof candidate["nickname"] === "string" && typeof candidate["roundCount"] === "number";
+}
+
+/** 要求の本文が契約の JoinRoomRequest の形か。値の範囲は見ない（domain の仕事）。 */
+function isJoinRoomRequest(body: unknown): body is components["schemas"]["JoinRoomRequest"] {
+  if (typeof body !== "object" || body === null) {
+    return false;
+  }
+  return typeof (body as Record<string, unknown>)["nickname"] === "string";
+}
+
+/** 本文を JSON として読む。読めなければ request.invalid_json の失敗を返す。 */
+async function readJson(c: Context): Promise<Result<unknown, ErrorResponse>> {
+  try {
+    return success(await c.req.json());
+  } catch {
+    return failure({ code: "request.invalid_json", detail: "Request body must be valid JSON." });
+  }
+}
+
+/** RoomError を、契約の ErrorResponse と HTTP の status にして返す。 */
+function roomErrorResponse(c: Context, error: RoomError): Response {
+  return c.json(
+    { code: error.code, detail: error.detail } satisfies ErrorResponse,
+    statusOf(error),
+  );
+}
+
+/** use case の部屋の写しを、契約の形に詰め替える。 */
+function toRoomSnapshot(dto: RoomSnapshotDto): components["schemas"]["RoomSnapshot"] {
+  return {
+    code: dto.code,
+    roundCount: dto.roundCount,
+    hostPlayerId: dto.hostPlayerId,
+    members: dto.members.map((member) => ({
+      playerId: member.playerId,
+      nickname: member.nickname,
+    })),
+  };
+}
+
+/** Authorization: Bearer <値> の値を返す。ヘッダーが無い・形が違うときは空文字を返す。 */
+function readBearerToken(c: Context): string {
+  const match = /^bearer +(\S+)$/i.exec(c.req.header("authorization") ?? "");
+  return match?.[1] ?? "";
 }
 
 /** RoomError の種類から HTTP の status を決める。 */
@@ -35,6 +83,7 @@ function statusOf(error: RoomError): 400 | 403 | 404 | 409 {
     case "not_enough_members":
       return 409;
     case "not_host":
+    case "not_member":
       return 403;
   }
 }
@@ -44,19 +93,11 @@ export function createApp(useCases: ApiUseCases): Hono {
   const app = new Hono();
 
   app.post("/rooms", async (c) => {
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json(
-        {
-          code: "request.invalid_json",
-          detail: "Request body must be valid JSON.",
-        } satisfies ErrorResponse,
-        400,
-      );
+    const body = await readJson(c);
+    if (isFailure(body)) {
+      return c.json(body.error, 400);
     }
-    if (!isCreateRoomRequest(body)) {
+    if (!isCreateRoomRequest(body.value)) {
       return c.json(
         {
           code: "request.invalid_body",
@@ -66,33 +107,63 @@ export function createApp(useCases: ApiUseCases): Hono {
       );
     }
     const { room, playerId, playerToken } = await useCases.createRoom.execute({
-      nickname: body.nickname,
-      roundCount: body.roundCount,
+      nickname: body.value.nickname,
+      roundCount: body.value.roundCount,
     });
     return c.json(
       {
-        room: {
-          code: room.code,
-          roundCount: room.roundCount,
-          hostPlayerId: room.hostPlayerId,
-          members: room.members.map((member) => ({
-            playerId: member.playerId,
-            nickname: member.nickname,
-          })),
-        },
+        room: toRoomSnapshot(room),
         player: { playerId, playerToken },
       } satisfies components["schemas"]["CreateRoomResponse"],
       201,
     );
   });
 
-  app.onError((error, c) => {
-    // 業務上の失敗（RoomError）は domain が throw 直前に記録しているので、ここではエラーコードを応答に変えるだけ
-    if (error instanceof RoomError) {
+  app.post("/rooms/:roomCode/members", async (c) => {
+    const body = await readJson(c);
+    if (isFailure(body)) {
+      return c.json(body.error, 400);
+    }
+    if (!isJoinRoomRequest(body.value)) {
       return c.json(
-        { code: error.code, detail: error.detail } satisfies ErrorResponse,
-        statusOf(error),
+        {
+          code: "request.invalid_body",
+          detail: "Request body must have a string nickname.",
+        } satisfies ErrorResponse,
+        400,
       );
+    }
+    const { room, playerId, playerToken } = await useCases.joinRoom.execute({
+      roomCode: c.req.param("roomCode"),
+      nickname: body.value.nickname,
+    });
+    return c.json(
+      {
+        room: toRoomSnapshot(room),
+        player: { playerId, playerToken },
+      } satisfies components["schemas"]["JoinRoomResponse"],
+      201,
+    );
+  });
+
+  app.get("/rooms/:roomCode", async (c) => {
+    const { room, playerId } = await useCases.getRoom.execute({
+      roomCode: c.req.param("roomCode"),
+      playerToken: readBearerToken(c),
+    });
+    return c.json(
+      {
+        room: toRoomSnapshot(room),
+        playerId,
+      } satisfies components["schemas"]["GetRoomResponse"],
+      200,
+    );
+  });
+
+  app.onError((error, c) => {
+    // 業務上の失敗（RoomError）は throw した domain か use case が直前に記録しているので、ここではエラーコードを応答に変えるだけ
+    if (error instanceof RoomError) {
+      return roomErrorResponse(c, error);
     }
     getLogger().error("API の処理中に予期しない例外が起きました", {
       method: c.req.method,
