@@ -62,7 +62,7 @@
 
 ### Phase 3: domain の識別子と改訂番号
 
-- [ ] 1.3.1 部屋コード・プレイヤー識別子・プレイヤートークン・改訂番号と乱数の源（`RoomCode`、`PlayerId`、`PlayerToken`、`Revision`、`RandomSource`）
+- [x] 1.3.1 部屋コード・プレイヤー識別子・プレイヤートークン・改訂番号と乱数の源（`RoomCode`、`PlayerId`、`PlayerToken`、`Revision`、`RandomSource`）
   - 観測点: domain の単体テスト
   - 変更ファイル: `packages/room/src/domain/random/RandomSource.ts`、`packages/room/src/domain/room/{RoomCode,PlayerId,PlayerToken,Revision}.ts` とそれぞれの `.test.ts`、`packages/room/src/index.ts`（10 件）
   - 同期する生き資料: `docs/domain/room/`（実装で図と変わった場合）
