@@ -73,6 +73,27 @@ module.exports = {
       to: { path: ["^packages/[^/]+/src/adapters/", "^packages/api-contract/"] },
     },
     {
+      name: "api-contract-depends-on-nothing",
+      severity: "error",
+      comment: "API 契約は何にも依存しない（生成された型だけを持つ）",
+      from: { path: "^packages/api-contract/" },
+      to: { pathNot: "^packages/api-contract/" },
+    },
+    {
+      name: "apps-and-tests-use-package-entrypoints",
+      severity: "error",
+      comment: "apps と tests は package の公開入口（src/index.ts）だけを import する",
+      from: { path: "^(apps|tests)/" },
+      to: { path: "^packages/[^/]+/src/", pathNot: "^packages/[^/]+/src/index\\.ts$" },
+    },
+    {
+      name: "tests-use-composition-root-only",
+      severity: "error",
+      comment: "tests は production と同じ組み立て（composition root）だけを経由する",
+      from: { path: "^tests/" },
+      to: { path: "^apps/", pathNot: "^apps/api/src/composition\\.ts$" },
+    },
+    {
       name: "not-to-dev-dep",
       severity: "error",
       comment: "テスト用の依存を本番コードに持ち込まない",

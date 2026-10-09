@@ -92,7 +92,7 @@
 
 ### Phase 6: 最初の API
 
-- [ ] 1.6.1 部屋を作る API（OpenAPI の作成と型の生成、`CreateRoom` use case、`apps/api` の composition root とローカル起動、`tests/` ワークスペース）
+- [x] 1.6.1 部屋を作る API（OpenAPI の作成と型の生成、`CreateRoom` use case、`apps/api` の composition root とローカル起動、`tests/` ワークスペース）
   - 観測点: 結合テスト `tests/integration/uc-01-create-room.integration.test.ts`
   - 変更ファイル: `packages/api-contract/{package.json,tsconfig.json,openapi.yaml,src/generated/schema.ts,src/index.ts}`、`packages/room/src/application/{CreateRoom.ts,CreateRoom.test.ts,Clock.ts,RoomSnapshotDto.ts}`、`packages/room/src/index.ts`、`apps/api/{package.json,tsconfig.json,src/createApp.ts,src/composition.ts,src/main.ts}`、`tests/{package.json,vitest.config.ts,integration/support/startServer.ts,integration/uc-01-create-room.integration.test.ts}`、`package.json`、`.dependency-cruiser.cjs`、`CLAUDE.md`・`AGENTS.md`（構成）、`package-lock.json`、`scenarios.md`（結合テストへの対応）（約 25 件。**上限 15 を超えるが承認済み**。束ね方の判断を参照）
   - 同期する生き資料: `docs/architecture/README.md`（入口の構成が変わった場合）、`CLAUDE.md` / `AGENTS.md` の「構成」
