@@ -17,7 +17,7 @@
 ## 束ね方の判断
 
 - **最初のスライス（ウォーキングスケルトン）なので、土台を最初の段に含める。** リポジトリの検証コマンド（lint・型・単体テスト・import 境界）と shared kernel の `DomainError`・`Result` を 1.1.1 に置き、その単体テストを観測点にする
-- **domain は値オブジェクトと集約を 3 段に割った。** 部屋集約の値オブジェクト・集約・port をまとめると 20 ファイルを超えるため。割り方は依存の向きで、package の雛形とエラーコードを持つ段（1.2.1）→ 識別子と順番（1.3.1）→ 集約（1.4.1）。どの段も domain の単体テストが観測点になる
+- **domain は値オブジェクトと集約を 3 段に割った。** 部屋集約の値オブジェクト・集約・port をまとめると 20 ファイルを超えるため。割り方は依存の向きで、package の雛形とエラーコードを持つ段（1.2.1）→ 識別子と改訂番号（1.3.1）→ 集約（1.4.1。描く順番の並べ替えを含む）。どの段も domain の単体テストが観測点になる
 - **Logger は domain の段と並べた（1.2.2）。** shared kernel の中で閉じ、room の値オブジェクトと互いの成果物を使わないため
 - **DynamoDB の部屋リポジトリは単独の段にした（1.5.1）。** 改訂番号を条件にした保存（同時に入ろうとした 2 人の先着判断、部屋コードの重なり）と、項目と集約の対応という判断を持ち、実 DB に接続する adapter のテストが観測点になるため
 - **use case・route・API 契約は、結合テストまで束ねた（1.6.1・1.7.1・1.7.2）。** use case は取得 → 判断 → 保存の受け渡しだけで、単独では人が正しさを判定できないため。ユースケース単位で、受け入れ基準 ID を持つ結合テストを観測点にする
@@ -60,15 +60,15 @@
   - 外す（未実装）ID: なし
   - _シナリオ: なし（土台）_ / _要件: なし_
 
-### Phase 3: domain の識別子と順番
+### Phase 3: domain の識別子と改訂番号
 
-- [ ] 1.3.1 部屋コード・プレイヤー識別子・プレイヤートークン・描く順番・改訂番号と乱数の源（`RoomCode`、`PlayerId`、`PlayerToken`、`DrawingOrder`、`Revision`、`RandomSource`）
+- [ ] 1.3.1 部屋コード・プレイヤー識別子・プレイヤートークン・改訂番号と乱数の源（`RoomCode`、`PlayerId`、`PlayerToken`、`Revision`、`RandomSource`）
   - 観測点: domain の単体テスト
-  - 変更ファイル: `packages/room/src/domain/random/RandomSource.ts`、`packages/room/src/domain/room/{RoomCode,PlayerId,PlayerToken,DrawingOrder,Revision}.ts` とそれぞれの `.test.ts`、`packages/room/src/index.ts`（12 件）
+  - 変更ファイル: `packages/room/src/domain/random/RandomSource.ts`、`packages/room/src/domain/room/{RoomCode,PlayerId,PlayerToken,Revision}.ts` とそれぞれの `.test.ts`、`packages/room/src/index.ts`（10 件）
   - 同期する生き資料: `docs/domain/room/`（実装で図と変わった場合）
   - 入力: 1.2.1
   - 外す（未実装）ID: なし
-  - _シナリオ: S-01-01、S-01-05、S-01-11_ / _要件: UC-01 要件 2・UC-03 要件 2 の判断部分_
+  - _シナリオ: S-01-01、S-01-11_ / _要件: UC-01 要件 2 の判断部分_
 
 ### Phase 4: domain の集約
 

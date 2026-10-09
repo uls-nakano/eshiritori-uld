@@ -11,11 +11,10 @@ classDiagram
   class Room["部屋<br>Room"] {
     <<Entity / Aggregate Root>>
     -code : RoomCode（部屋コード）
-    -members : Member[]（部屋に入った順のメンバー）
+    -members : Member[]（メンバー。開始前は部屋に入った順、開始後は描く順）
     -hostPlayerId : PlayerId（ホストのプレイヤー識別子）
     -roundCount : RoundCount（周回数）
     -status : RoomStatus（部屋の進行状態）
-    -drawingOrder : DrawingOrder（描く順番。開始前は無し）
     -lastUpdatedAt : Date（最後に更新された時刻）
     -revision : Revision（改訂番号）
     +create(hostNickname, roundCount, now, random) Room$
@@ -76,13 +75,6 @@ classDiagram
     +hasStarted() boolean（一度でもゲームが始まったか）
     +equals(other) boolean
   }
-  class DrawingOrder["描く順番<br>DrawingOrder"] {
-    <<Value Object>>
-    -playerIds : PlayerId[]（描き手を務める順のプレイヤー識別子）
-    +shuffle(playerIds, random) DrawingOrder$
-    +restore(playerIds) DrawingOrder$
-    +equals(other) boolean
-  }
   class Revision["改訂番号<br>Revision"] {
     <<Value Object>>
     -value : number（保存された回数）
@@ -105,13 +97,11 @@ classDiagram
   Room "1" *-- "1" PlayerId : ホスト
   Room "1" *-- "1" RoundCount : 周回数
   Room "1" *-- "1" RoomStatus : 進行状態
-  Room "1" *-- "0..1" DrawingOrder : 描く順番
   Room "1" *-- "1" Revision : 保存の条件
   Room ..> "1" RandomSource : 識別子と順番の生成に使う
   Member "1" *-- "1" PlayerId : 公開する識別子
   Member "1" *-- "1" PlayerToken : 本人の証明
   Member "1" *-- "1" Nickname : 名乗り
-  DrawingOrder "1" *-- "2..8" PlayerId : 順に並べる
   RoomRepository ..> "0..*" Room : 保存・復元
   style Room fill:#FFE0B2,stroke:#E65100
   style Member fill:#FFE0B2,stroke:#E65100
@@ -121,7 +111,6 @@ classDiagram
   style Nickname fill:#C8E6C9,stroke:#1B5E20
   style RoundCount fill:#C8E6C9,stroke:#1B5E20
   style RoomStatus fill:#C8E6C9,stroke:#1B5E20
-  style DrawingOrder fill:#C8E6C9,stroke:#1B5E20
   style Revision fill:#C8E6C9,stroke:#1B5E20
   style RoomRepository fill:#E1BEE7,stroke:#4A148C
   style RandomSource fill:#E1BEE7,stroke:#4A148C
@@ -136,6 +125,7 @@ classDiagram
 部屋に関するすべての判断の入口となる集約ルートです。部屋に入る（`join`）・始める（`start`）は、満員・ニックネームの重複・開始済み・ホストか・人数を、この集約の状態だけで判断します。
 
 - **メンバーを集約の内側に持つ。** メンバーを別の集約にすると、「8 人まで」「同じニックネームは 1 人まで」の判断が複数の集約にまたがり、同時に入ろうとした 2 人を先着順に裁けなくなるため
+- **描く順番はメンバーの並びで表す。** ゲームを始めるときにメンバーの並びをランダムに並べ替え、以降は並びがそのまま描く順番になる（UC-03 要件 2）。描く順番を別の値として持つと、メンバーとの食い違い（いない人が順番にいる・いる人が順番にいない）を集約が常に検査することになり、後続の移行単位でメンバーが抜ける・戻るたびに 2 か所を同時に直すことになるため。並べ替えると部屋に入った順は失われるが、それを使うのは後続の移行単位のホストの引き継ぎだけで、その設計で入った時刻をメンバーに持たせる
 - **ホストはプレイヤー識別子で指す。** メンバーに「ホストか」の印を持たせると、後続の移行単位でホストを引き継ぐとき（抜ける・接続が切れる）に 2 人のメンバーを同時に書き換えることになるため
 - **一度始まったら待機中に戻らない。** 結果画面・再戦後も新しい人を入れない（UC-02 要件 7）ため、進行状態は「一度でも始まったか」で判断する。後続の移行単位で進行状態（ターン中・終了）が増えても、この判断は変えない
 - **二度目の開始は失敗にしない。** 既に始まった部屋への開始は、何もせず「今回の要求では始まっていない」を返す（UC-03 要件 6）。二度押しや通信の再送でホストにエラーを見せず、順番も決め直さないため
@@ -169,7 +159,7 @@ classDiagram
 
 ## プレイヤー識別子（PlayerId）
 
-メンバーを指す、全員に公開してよい識別子です。メンバー一覧・描く順番・ホストの指定に使います。
+メンバーを指す、全員に公開してよい識別子です。メンバー一覧・ホストの指定に使います。
 
 - ニックネームを識別子にしない。ニックネームは表示のための名乗りで、後続の移行単位で同じ人が別の名前で戻る場面がありうるため
 
@@ -213,17 +203,6 @@ classDiagram
 部屋が待機中か、ゲームが始まったかを表します。外から実値を比べず、`hasStarted` で尋ねます。
 
 仕様は `RoomStatus.test.ts` の `describe` を参照。
-
----
-
-## 描く順番（DrawingOrder）
-
-ゲームの開始時にランダムに決める、描き手を務める順のプレイヤー識別子の並びです（UC-03 要件 2）。
-
-- **乱数の源を引数で受け取る。** 順番を決める乱数を固定できれば、単体テストで「この並びになる」を確かめられるため
-- 部屋の中の値として持つ。後続の移行単位でゲームの進行を別のパッケージに置くときは、開始時の順番を受け渡す
-
-仕様は `DrawingOrder.test.ts` の `describe` を参照。
 
 ---
 
