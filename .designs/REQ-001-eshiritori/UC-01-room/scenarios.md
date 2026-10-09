@@ -195,4 +195,6 @@
 | S-01-13 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | S-01-14 | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
 | 差分確認（7 人の部屋への同時参加） | `tests/integration/uc-02-join-room.integration.test.ts` | 実装済み |
-| S-01-05、S-01-18 | 後続の段で記入 | 未実装 |
+| S-01-18 | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |
+| S-01-05 | `tests/integration/uc-03-start-game.integration.test.ts`（開始の API まで。全員の画面の切り替えと同じ並びの表示は 1.9.1、開始の操作がホストにだけ出ることは 1.11.1 で記入） | 一部実装 |
+| 差分確認（二重の開始） | `tests/integration/uc-03-start-game.integration.test.ts` | 実装済み |

@@ -1,5 +1,5 @@
 import type { components } from "@eshiritori/api-contract";
-import type { CreateRoom, GetRoom, JoinRoom, RoomSnapshotDto } from "@eshiritori/room";
+import type { CreateRoom, GetRoom, JoinRoom, RoomSnapshotDto, StartGame } from "@eshiritori/room";
 import { RoomError } from "@eshiritori/room";
 import type { Result } from "@eshiritori/shared-kernel";
 import { failure, getLogger, isFailure, success } from "@eshiritori/shared-kernel";
@@ -11,6 +11,7 @@ export interface ApiUseCases {
   readonly createRoom: CreateRoom;
   readonly joinRoom: JoinRoom;
   readonly getRoom: GetRoom;
+  readonly startGame: StartGame;
 }
 
 type ErrorResponse = components["schemas"]["ErrorResponse"];
@@ -55,6 +56,7 @@ function toRoomSnapshot(dto: RoomSnapshotDto): components["schemas"]["RoomSnapsh
     code: dto.code,
     roundCount: dto.roundCount,
     hostPlayerId: dto.hostPlayerId,
+    status: dto.status,
     members: dto.members.map((member) => ({
       playerId: member.playerId,
       nickname: member.nickname,
@@ -156,6 +158,20 @@ export function createApp(useCases: ApiUseCases): Hono {
         room: toRoomSnapshot(room),
         playerId,
       } satisfies components["schemas"]["GetRoomResponse"],
+      200,
+    );
+  });
+
+  // 契約に本文が無いので、送られてきても読まない
+  app.post("/rooms/:roomCode/start", async (c) => {
+    const { room } = await useCases.startGame.execute({
+      roomCode: c.req.param("roomCode"),
+      playerToken: readBearerToken(c),
+    });
+    return c.json(
+      {
+        room: toRoomSnapshot(room),
+      } satisfies components["schemas"]["StartGameResponse"],
       200,
     );
   });

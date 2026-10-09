@@ -115,6 +115,7 @@ describe("execute", () => {
         code: saved?.code.value,
         roundCount: 1,
         hostPlayerId: saved?.host.playerId.value,
+        status: "waiting",
         members: saved?.members.map((m) => ({
           playerId: m.playerId.value,
           nickname: m.nickname.value,
