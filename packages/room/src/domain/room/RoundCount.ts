@@ -1,3 +1,5 @@
+import { getLogger } from "@eshiritori/shared-kernel";
+
 import { RoomError } from "../../errors/RoomError";
 
 /** 周回数の下限（UC-01 要件 5）。 */
@@ -16,6 +18,7 @@ export class RoundCount {
   /** 検証して周回数を作る。不正な入力は RoomError を throw する。 */
   static create(value: number): RoundCount {
     if (!Number.isInteger(value) || value < MIN_ROUND_COUNT || value > MAX_ROUND_COUNT) {
+      getLogger().error("周回数が 1〜5 の整数ではありません", { value });
       throw new RoomError(
         "round_count_out_of_range",
         `Round count must be an integer from ${String(MIN_ROUND_COUNT)} to ${String(MAX_ROUND_COUNT)}.`,

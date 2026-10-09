@@ -1,7 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RoomError } from "../../errors/RoomError";
 import { Nickname } from "./Nickname";
+
+const originalLogger = getLogger();
+let memoryLogger: MemoryLogger;
+
+beforeEach(() => {
+  memoryLogger = new MemoryLogger();
+  setLogger(memoryLogger);
+});
+
+afterEach(() => {
+  setLogger(originalLogger);
+});
 
 function valueOf(input: string): string {
   return Nickname.create(input).value;
@@ -66,6 +79,19 @@ describe("create", () => {
 
   it("名前の途中の空白は残す", () => {
     expect(valueOf("たろう じろう")).toBe("たろう じろう");
+  });
+
+  it("拒否する前に、入力された値を error のログに出す", () => {
+    errorCodeOf(" ");
+    errorCodeOf("じゅげむじゅげむごこう");
+    expect(memoryLogger.entries).toEqual([
+      { level: "error", message: "ニックネームが空です", context: { value: " " } },
+      {
+        level: "error",
+        message: "ニックネームが長すぎます",
+        context: { value: "じゅげむじゅげむごこう" },
+      },
+    ]);
   });
 });
 
