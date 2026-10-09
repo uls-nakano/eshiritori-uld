@@ -53,9 +53,9 @@
 
 ## 構成
 
-package・app はまだありません。最初の設計フェーズで層と package の置き場を決め、ここに 1 行ずつ追記します（置き場の規約は [rules/architecture](rules/architecture/)）。
+層と package の置き場（予定を含む）・技術の選定・ローカルと AWS の対応は [docs/architecture/](docs/architecture/README.md) にあります（置き場の規約は [rules/architecture](rules/architecture/)）。package・app はまだありません。作った段で、ここに 1 行ずつ追記します。
 
-- `docs/` — 目的（`product/`）・ユースケース記述（`usecases/`）・ジャーニー（`journeys/`）・ドメインモデルと用語集（`domain/`）
+- `docs/` — 目的（`product/`）・アーキテクチャ（`architecture/`）・ユースケース記述（`usecases/`）・ジャーニー（`journeys/`）・ドメインモデルと用語集（`domain/`）
 - `rules/` — 規約（標準 `standard.md` + プロジェクト `project.md`）
 - `.designs/` — 開発フローの記録（ログ資料）
 - `scripts/uld/` — uld-kit が配る `uld` CLI（kit 所有。直接編集しない）
