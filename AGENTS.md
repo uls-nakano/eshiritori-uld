@@ -59,6 +59,7 @@
 - `packages/room/` — 部屋の作成・参加・ゲームの開始を扱う業務 module（`domain` `application` `adapters` `errors` を置く）
 - `packages/realtime/` — WebSocket の接続の登録・検索（DynamoDB）と送信。ローカルは `ws` で接続を受けて送る（AWS 版の送信はデプロイの要求で足す）
 - `apps/api/` — HTTP API の入口と adapter の注入（composition root）。ローカル起動は `npm run start:api`
+- `apps/web/` — 画面（React + Vite）。API 契約の生成型だけに依存する。表示部品の確認は `npm run storybook`、story の play 関数は `npm run test:stories`（`npm run check` に含む）
 - `packages/api-contract/` — OpenAPI specification と、そこから生成する型（`npm run generate:api`）
 - `tests/` — HTTP 結合テスト（`tests/integration/`）。後に E2E
 - `packages/shared-kernel/` — `DomainError` 基底・`Result` など、module をまたぐ最小限の共通物

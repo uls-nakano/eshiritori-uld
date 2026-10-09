@@ -1,4 +1,6 @@
 const TEST = "\\.test\\.tsx?$";
+/** devDependencies を import してよいファイル（テスト・story・Storybook と Vite の設定） */
+const DEV_ONLY = `${TEST}|\\.stories\\.tsx$|^apps/web/\\.storybook/|^apps/web/vite\\.config\\.ts$`;
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -102,10 +104,17 @@ module.exports = {
       to: { path: "^apps/", pathNot: "^apps/api/src/composition\\.ts$" },
     },
     {
+      name: "web-depends-only-on-api-contract",
+      severity: "error",
+      comment: "画面は API 契約の生成型だけに依存する（業務の判断を再実装する経路を塞ぐ）",
+      from: { path: "^apps/web/" },
+      to: { path: "^(packages|apps)/", pathNot: "^(apps/web|packages/api-contract)/" },
+    },
+    {
       name: "not-to-dev-dep",
       severity: "error",
       comment: "テスト用の依存を本番コードに持ち込まない",
-      from: { path: "^(packages|apps)/", pathNot: TEST },
+      from: { path: "^(packages|apps)/", pathNot: DEV_ONLY },
       to: { dependencyTypes: ["npm-dev"] },
     },
     {

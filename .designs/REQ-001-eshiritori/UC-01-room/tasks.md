@@ -139,7 +139,7 @@
 
 ### Phase 10: 画面の土台と入力の表示
 
-- [ ] 1.10.1 `apps/web` の雛形と Storybook、部屋を作る・部屋に入るフォームの表示部品と story（`CreateRoomForm`、`JoinRoomForm`）
+- [x] 1.10.1 `apps/web` の雛形と Storybook、部屋を作る・部屋に入るフォームの表示部品と story（`CreateRoomForm`、`JoinRoomForm`）
   - 観測点: story（play 関数で表示の基準を確かめる）
   - 変更ファイル: `apps/web/{package.json,tsconfig.json,vite.config.ts,index.html,.storybook/main.ts,.storybook/preview.ts}`、`apps/web/src/components/{CreateRoomForm,JoinRoomForm}.tsx` とそれぞれの `.stories.tsx`、`.dependency-cruiser.cjs`、`package-lock.json`、`CLAUDE.md`・`AGENTS.md`（構成）（14 件）
   - 同期する生き資料: `CLAUDE.md` / `AGENTS.md` の「構成」
