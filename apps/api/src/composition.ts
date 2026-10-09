@@ -7,6 +7,7 @@ import {
   GetRoom,
   JoinRoom,
   roomTable,
+  StartGame,
 } from "@eshiritori/room";
 import { getLogger } from "@eshiritori/shared-kernel";
 import type { Hono } from "hono";
@@ -57,5 +58,6 @@ export function composeApp(config: ApiConfig): Hono {
     createRoom: new CreateRoom(repository, random, clock),
     joinRoom: new JoinRoom(repository, random, clock),
     getRoom: new GetRoom(repository, clock),
+    startGame: new StartGame(repository, random, clock),
   });
 }

@@ -111,6 +111,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{roomCode}/start:
+    post:
+      operationId: startGame
+      summary: ゲームを始める
+      description: ホストだけが始められる。描く順番をランダムに決め、members をその並びにする。既に始まった部屋への要求は何もせず、いまの部屋を 200 で返す（描く順番は決め直さない）。
+      security:
+        - playerToken: []
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      responses:
+        "200":
+          description: ゲームが始まった部屋。members が描く順番。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartGameResponse"
+        "403":
+          description: ホスト以外のメンバー、またはメンバーでない人からの要求（room.not_host）。トークンが無い・形が違う場合も同じ。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 部屋が無い、または期限切れ（room.room_not_found）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: メンバーがホスト 1 人だけ（room.not_enough_members）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 予期しない失敗。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     playerToken:
@@ -168,9 +208,15 @@ components:
         playerId:
           type: string
           description: 要求した本人のプレイヤー識別子。メンバー一覧のどれが自分かを決めるのに使う。
+    StartGameResponse:
+      type: object
+      required: [room]
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
     RoomSnapshot:
       type: object
-      required: [code, roundCount, hostPlayerId, members]
+      required: [code, roundCount, hostPlayerId, status, members]
       properties:
         code:
           type: string
@@ -179,8 +225,13 @@ components:
           type: integer
         hostPlayerId:
           type: string
+        status:
+          type: string
+          enum: [waiting, started]
+          description: 進行状態。waiting は待機中、started はゲームが始まった後。
         members:
           type: array
+          description: 開始前は部屋に入った順、開始後は描く順番。
           items:
             $ref: "#/components/schemas/RoomMember"
     RoomMember:
@@ -207,6 +258,6 @@ components:
       properties:
         code:
           type: string
-          description: "失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member など）、または request.invalid_json, request.invalid_body, server.internal_error。"
+          description: "失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member, room.not_host, room.not_enough_members など）、または request.invalid_json, request.invalid_body, server.internal_error。"
         detail:
           type: string

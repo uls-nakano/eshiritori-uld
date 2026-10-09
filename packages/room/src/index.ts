@@ -9,6 +9,8 @@ export { GetRoom } from "./application/GetRoom";
 export type { JoinRoomInput, JoinRoomOutput } from "./application/JoinRoom";
 export { JoinRoom } from "./application/JoinRoom";
 export type { MemberDto, RoomSnapshotDto } from "./application/RoomSnapshotDto";
+export type { StartGameInput, StartGameOutput } from "./application/StartGame";
+export { StartGame } from "./application/StartGame";
 export type { RoomRepository, RoomSaveConflict } from "./domain/room/RoomRepository";
 export { RoomError } from "./errors/RoomError";
 export type { RoomErrorCode } from "./errors/RoomErrorCode";

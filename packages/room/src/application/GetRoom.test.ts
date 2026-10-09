@@ -2,7 +2,7 @@ import type { Result } from "@eshiritori/shared-kernel";
 import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
 import { describe, expect, it } from "vitest";
 
-import { ROOM_CREATED_AT, roomWith } from "../../fixtures/roomFixtures";
+import { ROOM_CREATED_AT, roomWith, sequenceRandom } from "../../fixtures/roomFixtures";
 import type { Room } from "../domain/room/Room";
 import type { RoomCode } from "../domain/room/RoomCode";
 import type { RoomRepository, RoomSaveConflict } from "../domain/room/RoomRepository";
@@ -54,6 +54,7 @@ describe("execute", () => {
         code: room.code.value,
         roundCount: 1,
         hostPlayerId: room.host.playerId.value,
+        status: "waiting",
         members: room.members.map((m) => ({
           playerId: m.playerId.value,
           nickname: m.nickname.value,
@@ -139,5 +140,21 @@ describe("execute", () => {
     });
 
     expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+  });
+
+  it("ゲームが始まった部屋の写しは、進行状態が started で、描く順番の並びになる", async () => {
+    const room = roomWith(["たろう", "はなこ", "じろう"]);
+    room.start(room.host.token, ROOM_CREATED_AT, sequenceRandom());
+
+    const { useCase } = getRoomWith(room);
+    const result = await useCase.execute({
+      roomCode: "ABC123",
+      playerToken: room.host.token.value,
+    });
+
+    expect(isSuccess(result) && result.value.room.status).toBe("started");
+    expect(isSuccess(result) && result.value.room.members.map((m) => m.nickname)).toEqual(
+      room.members.map((m) => m.nickname.value),
+    );
   });
 });

@@ -109,7 +109,7 @@
   - 入力: 1.6.1
   - 外す（未実装）ID: UC-02 要件 2、UC-02 要件 4、UC-02 要件 5、UC-02 要件 6、UC-02 要件 7、UC-02 要件 8、UC-02 要件 9
   - _シナリオ: S-01-03、S-01-04、S-01-06、S-01-11〜S-01-16、差分確認の 1 件（同時参加）_ / _要件: UC-02 要件 2・4〜9_
-- [ ] 1.7.2 ゲームを始める API（`StartGame` use case、route、OpenAPI の追記）
+- [x] 1.7.2 ゲームを始める API（`StartGame` use case、route、OpenAPI の追記）
   - 観測点: 結合テスト `tests/integration/uc-03-start-game.integration.test.ts`
   - 変更ファイル: `packages/api-contract/{openapi.yaml,src/generated/schema.ts}`、`packages/room/src/application/{StartGame.ts,StartGame.test.ts}`、`packages/room/src/index.ts`、`apps/api/src/{createApp.ts,composition.ts}`、`tests/integration/uc-03-start-game.integration.test.ts`、`scenarios.md`（結合テストへの対応）（9 件）
   - 同期する生き資料: なし

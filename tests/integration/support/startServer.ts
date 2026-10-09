@@ -8,7 +8,11 @@ import { serve } from "@hono/node-server";
 export interface TestServer {
   readonly baseUrl: string;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
-  postJson<TBody>(path: string, body: unknown): Promise<{ status: number; body: TBody }>;
+  postJson<TBody>(
+    path: string,
+    body: unknown,
+    playerToken?: string,
+  ): Promise<{ status: number; body: TBody }>;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
   getJson<TBody>(path: string, playerToken?: string): Promise<{ status: number; body: TBody }>;
   close(): Promise<void>;
@@ -53,11 +57,20 @@ export async function startServer(): Promise<TestServer> {
   return {
     baseUrl,
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 応答の型は呼び出し側が契約の生成型で指定する
-    async postJson<TBody>(path: string, body: unknown) {
+    async postJson<TBody>(path: string, body: unknown, playerToken?: string) {
+      // 本文が undefined のときは、本文の無い要求（開始など）として content-type も付けない
+      const headers: Record<string, string> = {};
+      if (body !== undefined) {
+        headers["content-type"] = "application/json";
+      }
+      if (playerToken !== undefined) {
+        headers["authorization"] = `Bearer ${playerToken}`;
+      }
       const response = await fetch(`${baseUrl}${path}`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: typeof body === "string" ? body : JSON.stringify(body),
+        headers,
+        body:
+          body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
       });
       // Response.json() は unknown を返す。生成型を指定して受けるための、テストのハーネスだけのキャスト
       return { status: response.status, body: (await response.json()) as TBody };

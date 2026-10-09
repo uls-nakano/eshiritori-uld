@@ -64,6 +64,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/rooms/{roomCode}/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * ゲームを始める
+     * @description ホストだけが始められる。描く順番をランダムに決め、members をその並びにする。既に始まった部屋への要求は何もせず、いまの部屋を 200 で返す（描く順番は決め直さない）。
+     */
+    post: operations["startGame"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -91,11 +111,20 @@ export interface components {
       /** @description 要求した本人のプレイヤー識別子。メンバー一覧のどれが自分かを決めるのに使う。 */
       playerId: string;
     };
+    StartGameResponse: {
+      room: components["schemas"]["RoomSnapshot"];
+    };
     RoomSnapshot: {
       /** @description 部屋コード。英大文字と数字 6 文字。 */
       code: string;
       roundCount: number;
       hostPlayerId: string;
+      /**
+       * @description 進行状態。waiting は待機中、started はゲームが始まった後。
+       * @enum {string}
+       */
+      status: "waiting" | "started";
+      /** @description 開始前は部屋に入った順、開始後は描く順番。 */
       members: components["schemas"]["RoomMember"][];
     };
     RoomMember: {
@@ -109,7 +138,7 @@ export interface components {
       playerToken: string;
     };
     ErrorResponse: {
-      /** @description 失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member など）、または request.invalid_json, request.invalid_body, server.internal_error。 */
+      /** @description 失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member, room.not_host, room.not_enough_members など）、または request.invalid_json, request.invalid_body, server.internal_error。 */
       code: string;
       detail: string;
     };
@@ -262,6 +291,65 @@ export interface operations {
       };
       /** @description 部屋が無い、または期限切れ（room.room_not_found）。 */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 予期しない失敗。 */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  startGame: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 部屋コード。大文字小文字・全角半角・前後の空白の違いはそろえて扱う。書式の誤りは room.room_not_found。 */
+        roomCode: components["parameters"]["RoomCode"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ゲームが始まった部屋。members が描く順番。 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StartGameResponse"];
+        };
+      };
+      /** @description ホスト以外のメンバー、またはメンバーでない人からの要求（room.not_host）。トークンが無い・形が違う場合も同じ。 */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 部屋が無い、または期限切れ（room.room_not_found）。 */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description メンバーがホスト 1 人だけ（room.not_enough_members）。 */
+      409: {
         headers: {
           [name: string]: unknown;
         };

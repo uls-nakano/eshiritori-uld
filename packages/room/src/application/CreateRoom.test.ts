@@ -81,6 +81,7 @@ describe("execute", () => {
       code: room?.code.value,
       roundCount: 3,
       hostPlayerId: room?.host.playerId.value,
+      status: "waiting",
       members: [{ playerId: room?.host.playerId.value, nickname: "たろう" }],
     });
   });

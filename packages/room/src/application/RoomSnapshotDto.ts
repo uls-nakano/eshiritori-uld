@@ -11,6 +11,8 @@ export interface RoomSnapshotDto {
   readonly code: string;
   readonly roundCount: number;
   readonly hostPlayerId: string;
+  /** 進行状態。started のとき members の並びが描く順番。 */
+  readonly status: "waiting" | "started";
   readonly members: readonly MemberDto[];
 }
 
@@ -20,6 +22,7 @@ export function toRoomSnapshotDto(room: Room): RoomSnapshotDto {
     code: room.code.value,
     roundCount: room.roundCount.value,
     hostPlayerId: room.hostPlayerId.value,
+    status: room.status.hasStarted() ? "started" : "waiting",
     members: room.members.map((member) => ({
       playerId: member.playerId.value,
       nickname: member.nickname.value,
