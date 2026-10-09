@@ -1,5 +1,3 @@
-import { isSuccess } from "@eshiritori/shared-kernel";
-
 import type { RandomSource } from "../src/domain/random/RandomSource";
 import { Nickname } from "../src/domain/room/Nickname";
 import { Room } from "../src/domain/room/Room";
@@ -42,20 +40,12 @@ export function fixedRandom(
 
 /** 成功するはずのニックネームを作る。 */
 export function nicknameOf(value: string): Nickname {
-  const result = Nickname.create(value);
-  if (!isSuccess(result)) {
-    throw new Error(`Invalid nickname in fixture: ${value}`);
-  }
-  return result.value;
+  return Nickname.create(value);
 }
 
 /** 成功するはずの周回数を作る。 */
 export function roundCountOf(value: number): RoundCount {
-  const result = RoundCount.create(value);
-  if (!isSuccess(result)) {
-    throw new Error(`Invalid round count in fixture: ${String(value)}`);
-  }
-  return result.value;
+  return RoundCount.create(value);
 }
 
 /** 先頭の名前で部屋を作り（周回数 1）、残りを順に参加させた部屋。 */
@@ -67,10 +57,7 @@ export function roomWith(nicknames: readonly string[], now: Date = ROOM_CREATED_
   const random = sequenceRandom();
   const room = Room.create(nicknameOf(first), roundCountOf(1), now, random);
   for (const name of rest) {
-    const joined = room.join(nicknameOf(name), now, random);
-    if (!isSuccess(joined)) {
-      throw new Error(`Fixture join failed: ${name}`);
-    }
+    room.join(nicknameOf(name), now, random);
   }
   return room;
 }

@@ -1,13 +1,5 @@
 import type { Result } from "@eshiritori/shared-kernel";
-import {
-  failure,
-  getLogger,
-  isFailure,
-  isSuccess,
-  MemoryLogger,
-  setLogger,
-  success,
-} from "@eshiritori/shared-kernel";
+import { failure, getLogger, MemoryLogger, setLogger, success } from "@eshiritori/shared-kernel";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { fixedRandom, ROOM_CREATED_AT, roomWith } from "../../fixtures/roomFixtures";
@@ -59,10 +51,7 @@ function startGameWith(repository: RoomRepository, random: RandomSource): StartG
 
 function startedRoom(nicknames: readonly string[]): Room {
   const room = roomWith(nicknames);
-  const started = room.start(room.host.token, ROOM_CREATED_AT, fixedRandom([0, 0, 0, 0]));
-  if (!isSuccess(started)) {
-    throw new Error("Fixture start failed.");
-  }
+  room.start(room.host.token, ROOM_CREATED_AT, fixedRandom([0, 0, 0, 0]));
   return room;
 }
 
@@ -92,7 +81,7 @@ describe("execute", () => {
         playerToken: HOST_TOKEN,
       });
 
-      expect(isSuccess(result)).toBe(true);
+      expect(result.room.code).toEqual(expect.any(String));
       expect(repository.saved).toHaveLength(1);
       expect(repository.saved[0]?.status.hasStarted()).toBe(true);
       expect(repository.saved[0]?.members.map((m) => m.nickname.value)).toEqual([
@@ -111,7 +100,7 @@ describe("execute", () => {
       });
 
       const saved = repository.saved[0];
-      expect(isSuccess(result) && result.value.room).toEqual({
+      expect(result.room).toEqual({
         code: saved?.code.value,
         roundCount: 1,
         hostPlayerId: saved?.host.playerId.value,
@@ -121,7 +110,7 @@ describe("execute", () => {
           nickname: m.nickname.value,
         })),
       });
-      const serialized = JSON.stringify(isSuccess(result) && result.value.room);
+      const serialized = JSON.stringify(result.room);
       for (const member of saved?.members ?? []) {
         expect(serialized).not.toContain(member.token.value);
       }
@@ -153,24 +142,24 @@ describe("execute", () => {
   it("部屋コードの書式が誤りのとき、room_not_found を返して部屋を探さない", async () => {
     const repository = new FakeRoomRepository([roomWith(["たろう", "はなこ"])]);
 
-    const result = await startGameWith(repository, fixedRandom([0])).execute({
-      roomCode: "ABC",
-      playerToken: HOST_TOKEN,
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+    await expect(
+      startGameWith(repository, fixedRandom([0])).execute({
+        roomCode: "ABC",
+        playerToken: HOST_TOKEN,
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.room_not_found" }));
     expect(repository.requestedCodes).toEqual([]);
   });
 
   it("部屋が無いとき、room_not_found を返して保存しない", async () => {
     const repository = new FakeRoomRepository([undefined]);
 
-    const result = await startGameWith(repository, fixedRandom([0])).execute({
-      roomCode: "ABC123",
-      playerToken: HOST_TOKEN,
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+    await expect(
+      startGameWith(repository, fixedRandom([0])).execute({
+        roomCode: "ABC123",
+        playerToken: HOST_TOKEN,
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.room_not_found" }));
     expect(repository.attempts).toBe(0);
   });
 
@@ -179,12 +168,12 @@ describe("execute", () => {
       roomWith(["たろう", "はなこ"], new Date(NOW.getTime() - 24 * HOUR)),
     ]);
 
-    const result = await startGameWith(repository, fixedRandom([0])).execute({
-      roomCode: "ABC123",
-      playerToken: HOST_TOKEN,
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+    await expect(
+      startGameWith(repository, fixedRandom([0])).execute({
+        roomCode: "ABC123",
+        playerToken: HOST_TOKEN,
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.room_not_found" }));
     expect(repository.attempts).toBe(0);
   });
 
@@ -198,7 +187,7 @@ describe("execute", () => {
       playerToken: HOST_TOKEN,
     });
 
-    expect(isSuccess(result)).toBe(true);
+    expect(result.room.code).toEqual(expect.any(String));
   });
 
   it.each([HOST_TOKEN, "ホストでないトークン"])(
@@ -208,12 +197,12 @@ describe("execute", () => {
         roomWith(["たろう", "はなこ"], new Date(NOW.getTime() - 24 * HOUR)),
       ]);
 
-      const result = await startGameWith(repository, fixedRandom([0])).execute({
-        roomCode: "ABC123",
-        playerToken,
-      });
-
-      expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+      await expect(
+        startGameWith(repository, fixedRandom([0])).execute({
+          roomCode: "ABC123",
+          playerToken,
+        }),
+      ).rejects.toThrow(expect.objectContaining({ code: "room.room_not_found" }));
     },
   );
 
@@ -228,24 +217,24 @@ describe("execute", () => {
     const room = roomWith(["たろう", "はなこ"]);
     const repository = new FakeRoomRepository([room]);
 
-    const result = await startGameWith(repository, fixedRandom([0])).execute({
-      roomCode: "ABC123",
-      playerToken: token(room) ?? "",
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.not_host");
+    await expect(
+      startGameWith(repository, fixedRandom([0])).execute({
+        roomCode: "ABC123",
+        playerToken: token(room) ?? "",
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.not_host" }));
     expect(repository.attempts).toBe(0);
   });
 
   it("メンバーがホスト 1 人だけのとき、not_enough_members を返して保存しない", async () => {
     const repository = new FakeRoomRepository([roomWith(["たろう"])]);
 
-    const result = await startGameWith(repository, fixedRandom([])).execute({
-      roomCode: "ABC123",
-      playerToken: HOST_TOKEN,
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.not_enough_members");
+    await expect(
+      startGameWith(repository, fixedRandom([])).execute({
+        roomCode: "ABC123",
+        playerToken: HOST_TOKEN,
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.not_enough_members" }));
     expect(repository.attempts).toBe(0);
   });
 
@@ -259,7 +248,7 @@ describe("execute", () => {
         playerToken: HOST_TOKEN,
       });
 
-      expect(isSuccess(result)).toBe(true);
+      expect(result.room.code).toEqual(expect.any(String));
       expect(repository.attempts).toBe(0);
       expect(room.lastUpdatedAt).toEqual(ROOM_CREATED_AT);
     });
@@ -273,8 +262,8 @@ describe("execute", () => {
         playerToken: HOST_TOKEN,
       });
 
-      expect(isSuccess(result) && result.value.room.status).toBe("started");
-      expect(isSuccess(result) && result.value.room.members.map((m) => m.nickname)).toEqual(
+      expect(result.room.status).toBe("started");
+      expect(result.room.members.map((m) => m.nickname)).toEqual(
         room.members.map((m) => m.nickname.value),
       );
     });
@@ -283,12 +272,12 @@ describe("execute", () => {
       const room = startedRoom(["たろう", "はなこ"]);
       const repository = new FakeRoomRepository([room]);
 
-      const result = await startGameWith(repository, fixedRandom([])).execute({
-        roomCode: "ABC123",
-        playerToken: room.members.find((m) => m.token.value !== HOST_TOKEN)?.token.value ?? "",
-      });
-
-      expect(isFailure(result) && result.error.code).toBe("room.not_host");
+      await expect(
+        startGameWith(repository, fixedRandom([])).execute({
+          roomCode: "ABC123",
+          playerToken: room.members.find((m) => m.token.value !== HOST_TOKEN)?.token.value ?? "",
+        }),
+      ).rejects.toThrow(expect.objectContaining({ code: "room.not_host" }));
     });
   });
 
@@ -303,7 +292,7 @@ describe("execute", () => {
         playerToken: HOST_TOKEN,
       });
 
-      expect(isSuccess(result)).toBe(true);
+      expect(result.room.code).toEqual(expect.any(String));
       expect(repository.requestedCodes).toHaveLength(2);
       expect(repository.attempts).toBe(2);
       expect(repository.saved[0]).toBe(reread);
@@ -320,7 +309,7 @@ describe("execute", () => {
       });
 
       expect(repository.saved).toHaveLength(0);
-      expect(isSuccess(result) && result.value.room.members.map((m) => m.nickname)).toEqual(
+      expect(result.room.members.map((m) => m.nickname)).toEqual(
         reread.members.map((m) => m.nickname.value),
       );
     });

@@ -1,5 +1,4 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, isFailure, success } from "@eshiritori/shared-kernel";
+import { getLogger } from "@eshiritori/shared-kernel";
 
 import { PlayerToken } from "../domain/room/PlayerToken";
 import { RoomCode } from "../domain/room/RoomCode";
@@ -32,21 +31,26 @@ export class GetRoom {
     this.#clock = clock;
   }
 
-  /** トークンの持ち主がメンバーの部屋の状態を返す。取れなければ RoomError の Result で返す。 */
-  async execute(input: GetRoomInput): Promise<Result<GetRoomOutput, RoomError>> {
+  /** トークンの持ち主がメンバーの部屋の状態を返す。取れなければ RoomError を throw する。 */
+  async execute(input: GetRoomInput): Promise<GetRoomOutput> {
     const code = RoomCode.create(input.roomCode);
-    if (isFailure(code)) {
-      return failure(code.error);
-    }
-    const room = await this.#repository.findByCode(code.value);
+    const room = await this.#repository.findByCode(code);
     if (room === undefined || room.isExpiredAt(this.#clock.now())) {
-      return failure(new RoomError("room_not_found", "Room was not found."));
+      getLogger().error("状態を取ろうとした部屋が無いか期限切れです", {
+        roomCode: code.value,
+        found: room !== undefined,
+      });
+      throw new RoomError("room_not_found", "Room was not found.");
     }
     // 無い・期限切れの部屋には、トークンの有無にかかわらず room_not_found を返すため、メンバーの確認は後に置く
     const member = room.findMember(PlayerToken.create(input.playerToken));
     if (member === undefined) {
-      return failure(new RoomError("not_member", "The player is not a member of the room."));
+      // トークンは秘密の値なのでログに出さない
+      getLogger().error("部屋のメンバーでない人が部屋の状態を取ろうとしました", {
+        roomCode: code.value,
+      });
+      throw new RoomError("not_member", "The player is not a member of the room.");
     }
-    return success({ room: toRoomSnapshotDto(room), playerId: member.playerId.value });
+    return { room: toRoomSnapshotDto(room), playerId: member.playerId.value };
   }
 }
