@@ -1,12 +1,12 @@
 # スキルルール（標準）
 
-> 標準 v0.2。ULD（ULS Loop Development）の標準ルールで、uld-kit から配布されます。プロジェクト固有の追記・上書きは同じフォルダの `project.md` にあります。
+> 標準 v0.3。ULD（ULS Loop Development）の標準ルールで、uld-kit から配布されます。プロジェクト固有の追記・上書きは同じフォルダの `project.md` にあります。
 
 スキル（各リポジトリの `.claude/skills/*/SKILL.md`。標準の部品は uld-kit の `skills/` が原本）の命名と本文の書き方のルールです。スキル本文の日本語・章立てなど文書一般のルールは [documentation](../documentation/standard.md) を参照してください。
 
 ## 命名
 
-標準プロセス（**ULD = ULS Loop Development**）の部品となるスキルは `uld-` を接頭辞にします（`uld-impl` `uld-impl-fast` `uld-task-design` `uld-implement` `uld-review` `uld-rules` `uld-domain-model` `uld-init`）。スキル一覧で標準の部品がひと固まりに見え、補完で全部引けるようにするためです。原本は uld-kit の `skills/` にあり、`npx --yes github:uls-nakano/uld-kit#<tag> init` が各リポジトリの `.claude/skills/` へコピーします。**コピーされたスキルはリポジトリ側で直接編集しません**（食い違いは `node scripts/uld/uld.mjs check-kit` が検出します）。変更は uld-kit 側で行い、版上げで配り直します。
+標準プロセス（**ULD = ULS Loop Development**）の部品となるスキルは `uld-` を接頭辞にします（`uld-scenario` `uld-scenario-review` `uld-design` `uld-design-review` `uld-impl` `uld-impl-fast` `uld-task-design` `uld-implement` `uld-review` `uld-rules` `uld-domain-model` `uld-init`）。スキル一覧で標準の部品がひと固まりに見え、補完で全部引けるようにするためです。原本は uld-kit の `skills/` にあり、`npx --yes github:uls-nakano/uld-kit#<tag> init` が各リポジトリの `.claude/skills/` へコピーします。**コピーされたスキルはリポジトリ側で直接編集しません**（食い違いは `node scripts/uld/uld.mjs check-kit` が検出します）。変更は uld-kit 側で行い、版上げで配り直します。
 
 - フェーズ名を先に置き、レビューは後ろに付ける（`uld-scenario` と `uld-scenario-review` のように、各フェーズの本体とレビューが一覧で隣り合うため）
 - **プロジェクト固有のスキルは `uld` の名前空間を使わない。** 各リポジトリの `.claude/skills/` に置きます。`uld` に入れるのは標準の部品として他プロジェクトへ配布できるものだけです。例えば、特定リポジトリのドキュメント記法に依存するスキルは `uld` に入れません
