@@ -1,10 +1,4 @@
-import {
-  getLogger,
-  isFailure,
-  isSuccess,
-  MemoryLogger,
-  setLogger,
-} from "@eshiritori/shared-kernel";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -15,6 +9,7 @@ import {
   roundCountOf,
   sequenceRandom,
 } from "../../../fixtures/roomFixtures";
+import { RoomError } from "../../errors/RoomError";
 import { Member } from "./Member";
 import { PlayerId } from "./PlayerId";
 import { PlayerToken } from "./PlayerToken";
@@ -40,6 +35,17 @@ function after(milliseconds: number): Date {
 }
 
 const HOUR = 60 * 60 * 1000;
+
+/** 呼び出しが throw した RoomError の code。throw しなければテストを失敗させる。 */
+function errorCodeOf(call: () => unknown): string {
+  try {
+    call();
+  } catch (error) {
+    if (error instanceof RoomError) return error.code;
+    throw error;
+  }
+  throw new Error("expected RoomError");
+}
 
 function names(room: Room): string[] {
   return room.members.map((m) => m.nickname.value);
@@ -189,16 +195,14 @@ describe("join", () => {
   it("入れる部屋なら、新しいメンバーが末尾に加わり、加わったメンバーを返す", () => {
     const room = roomWith(["たろう"]);
     const result = room.join(nicknameOf("はなこ"), after(HOUR), sequenceRandom());
-    if (!isSuccess(result)) throw new Error("expected success");
     expect(names(room)).toEqual(["たろう", "はなこ"]);
-    expect(room.members[1]).toBe(result.value);
+    expect(room.members[1]).toBe(result);
   });
 
   it("加わったメンバーのトークンで findMember できる", () => {
     const room = roomWith(["たろう"]);
     const result = room.join(nicknameOf("はなこ"), after(HOUR), sequenceRandom());
-    if (!isSuccess(result)) throw new Error("expected success");
-    expect(room.findMember(result.value.token)).toBe(result.value);
+    expect(room.findMember(result.token)).toBe(result);
   });
 
   it("最後に更新した時刻が入った時刻になり、改訂番号は変えない", () => {
@@ -211,61 +215,72 @@ describe("join", () => {
   it("7 人の部屋には入れて 8 人になる", () => {
     const room = roomWith(["a1", "a2", "a3", "a4", "a5", "a6", "a7"]);
     const result = room.join(nicknameOf("a8"), after(HOUR), sequenceRandom());
-    expect(isSuccess(result)).toBe(true);
+    expect(result).toBeInstanceOf(Member);
     expect(room.members).toHaveLength(8);
   });
 
   it("8 人の部屋は room.room_full で拒否し、メンバーは 8 人のまま", () => {
     const room = roomWith(["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"]);
-    const result = room.join(nicknameOf("a9"), after(HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.room_full");
+    expect(errorCodeOf(() => room.join(nicknameOf("a9"), after(HOUR), sequenceRandom()))).toBe(
+      "room.room_full",
+    );
     expect(room.members).toHaveLength(8);
   });
 
   it("ゲームが始まった部屋は room.game_already_started で拒否する", () => {
     const room = roomWith(["たろう", "はなこ"]);
     room.start(room.host.token, after(HOUR), sequenceRandom());
-    const result = room.join(nicknameOf("じろう"), after(2 * HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.game_already_started");
+    expect(
+      errorCodeOf(() => room.join(nicknameOf("じろう"), after(2 * HOUR), sequenceRandom())),
+    ).toBe("room.game_already_started");
   });
 
   it("同じニックネームのメンバーがいれば room.nickname_taken で拒否する", () => {
     const room = roomWith(["たろう", "はなこ"]);
-    const result = room.join(nicknameOf(" はなこ "), after(HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.nickname_taken");
+    expect(
+      errorCodeOf(() => room.join(nicknameOf(" はなこ "), after(HOUR), sequenceRandom())),
+    ).toBe("room.nickname_taken");
   });
 
   it("ひらがなとカタカナの違いは別のニックネームとして入れる", () => {
     const room = roomWith(["はなこ"]);
     const result = room.join(nicknameOf("ハナコ"), after(HOUR), sequenceRandom());
-    expect(isSuccess(result)).toBe(true);
+    expect(result).toBeInstanceOf(Member);
   });
 
   describe("判断の順序", () => {
     it("始まった 8 人の部屋は game_already_started", () => {
       const room = startedFullRoom();
-      const result = room.join(nicknameOf("a9"), after(HOUR), sequenceRandom());
-      if (!isFailure(result)) throw new Error("expected failure");
-      expect(result.error.code).toBe("room.game_already_started");
+      expect(errorCodeOf(() => room.join(nicknameOf("a9"), after(HOUR), sequenceRandom()))).toBe(
+        "room.game_already_started",
+      );
     });
 
     it("8 人の部屋に同じニックネームで入ると room_full", () => {
       const room = roomWith(["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"]);
-      const result = room.join(nicknameOf("a1"), after(HOUR), sequenceRandom());
-      if (!isFailure(result)) throw new Error("expected failure");
-      expect(result.error.code).toBe("room.room_full");
+      expect(errorCodeOf(() => room.join(nicknameOf("a1"), after(HOUR), sequenceRandom()))).toBe(
+        "room.room_full",
+      );
     });
   });
 
   it("拒否したときは、メンバーも最後に更新した時刻も変わらない", () => {
     const room = roomWith(["たろう", "はなこ"]);
-    const result = room.join(nicknameOf("はなこ"), after(HOUR), sequenceRandom());
-    expect(isFailure(result)).toBe(true);
+    expect(() => room.join(nicknameOf("はなこ"), after(HOUR), sequenceRandom())).toThrow(RoomError);
     expect(names(room)).toEqual(["たろう", "はなこ"]);
     expect(room.lastUpdatedAt.getTime()).toBe(ROOM_CREATED_AT.getTime());
+  });
+
+  it("拒否する前に、判断の原因を error のログに出す", () => {
+    const room = roomWith(["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"]);
+    errorCodeOf(() => room.join(nicknameOf("a9"), after(HOUR), sequenceRandom()));
+    expect(memoryLogger.entries).toEqual([
+      {
+        level: "error",
+        message: "満員の部屋には入れません",
+        context: { roomCode: room.code.value, memberCount: 8 },
+      },
+    ]);
   });
 });
 
@@ -295,8 +310,7 @@ describe("start", () => {
   it("ホストが 2 人以上の部屋で始めると true を返し、始まった状態になる", () => {
     const room = threeMembers();
     const result = room.start(room.host.token, after(HOUR), sequenceRandom());
-    if (!isSuccess(result)) throw new Error("expected success");
-    expect(result.value).toBe(true);
+    expect(result).toBe(true);
     expect(room.status.hasStarted()).toBe(true);
   });
 
@@ -331,26 +345,26 @@ describe("start", () => {
     const room = threeMembers();
     const guest = room.members[1];
     if (guest === undefined) throw new Error("expected member");
-    const result = room.start(guest.token, after(HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.not_host");
+    expect(errorCodeOf(() => room.start(guest.token, after(HOUR), sequenceRandom()))).toBe(
+      "room.not_host",
+    );
     expect(room.status.hasStarted()).toBe(false);
   });
 
   it("メンバーでないトークン・書式の誤ったトークンは room.not_host で拒否する", () => {
     const room = threeMembers();
     for (const value of ["unknown-token", "not a token"]) {
-      const result = room.start(PlayerToken.create(value), after(HOUR), sequenceRandom());
-      if (!isFailure(result)) throw new Error("expected failure");
-      expect(result.error.code).toBe("room.not_host");
+      expect(
+        errorCodeOf(() => room.start(PlayerToken.create(value), after(HOUR), sequenceRandom())),
+      ).toBe("room.not_host");
     }
   });
 
   it("ホスト 1 人だけの部屋は room.not_enough_members で拒否し、始まらない", () => {
     const room = roomWith(["たろう"]);
-    const result = room.start(room.host.token, after(HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.not_enough_members");
+    expect(errorCodeOf(() => room.start(room.host.token, after(HOUR), sequenceRandom()))).toBe(
+      "room.not_enough_members",
+    );
     expect(room.status.hasStarted()).toBe(false);
   });
 
@@ -359,8 +373,7 @@ describe("start", () => {
     room.start(room.host.token, after(HOUR), fixedRandom([2, 1]));
     const before = names(room);
     const result = room.start(room.host.token, after(2 * HOUR), fixedRandom([]));
-    if (!isSuccess(result)) throw new Error("expected success");
-    expect(result.value).toBe(false);
+    expect(result).toBe(false);
     expect(names(room)).toEqual(before);
     expect(room.lastUpdatedAt.getTime()).toBe(after(HOUR).getTime());
   });
@@ -370,9 +383,21 @@ describe("start", () => {
     room.start(room.host.token, after(HOUR), sequenceRandom());
     const guest = room.members.find((m) => !m.playerId.equals(room.hostPlayerId));
     if (guest === undefined) throw new Error("expected member");
-    const result = room.start(guest.token, after(2 * HOUR), sequenceRandom());
-    if (!isFailure(result)) throw new Error("expected failure");
-    expect(result.error.code).toBe("room.not_host");
+    expect(errorCodeOf(() => room.start(guest.token, after(2 * HOUR), sequenceRandom()))).toBe(
+      "room.not_host",
+    );
+  });
+
+  it("拒否する前に、判断の原因を error のログに出す", () => {
+    const room = roomWith(["たろう"]);
+    errorCodeOf(() => room.start(room.host.token, after(HOUR), sequenceRandom()));
+    expect(memoryLogger.entries).toEqual([
+      {
+        level: "error",
+        message: "人数が足りないのでゲームを始められません",
+        context: { roomCode: room.code.value, memberCount: 1 },
+      },
+    ]);
   });
 });
 
