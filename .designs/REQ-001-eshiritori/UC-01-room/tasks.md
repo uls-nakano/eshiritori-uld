@@ -82,7 +82,7 @@
 
 ### Phase 5: adapter（永続化）
 
-- [ ] 1.5.1 DynamoDB の部屋リポジトリと暗号論的な乱数の源（`DynamoDbRoomRepository`、`RoomItemMapper`、`CryptoRandomSource`）とローカルの DynamoDB
+- [x] 1.5.1 DynamoDB の部屋リポジトリと暗号論的な乱数の源（`DynamoDbRoomRepository`、`RoomItemMapper`、`CryptoRandomSource`）とローカルの DynamoDB
   - 観測点: 実 DB（DynamoDB Local）に接続する adapter の単体テスト
   - 変更ファイル: `compose.yaml`（DynamoDB Local）、`packages/room/src/adapters/persistence/{DynamoDbRoomRepository.ts,DynamoDbRoomRepository.test.ts,RoomItemMapper.ts,RoomItemMapper.test.ts,roomTable.ts}`、`packages/room/src/adapters/random/{CryptoRandomSource.ts,CryptoRandomSource.test.ts}`、`scripts/create-tables.ts`、`package.json`（DB の起動・作成コマンド）、`package-lock.json`、`packages/room/package.json`（12 件）
   - 同期する生き資料: `docs/architecture/README.md`（テーブルの設計が「データの保存と期限」と変わった場合）、`rules/testing/project.md`（DB の起動手順）
