@@ -1,5 +1,4 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, getLogger, isFailure, isSuccess, success } from "@eshiritori/shared-kernel";
+import { getLogger, isSuccess } from "@eshiritori/shared-kernel";
 
 import type { RandomSource } from "../domain/random/RandomSource";
 import { PlayerToken } from "../domain/room/PlayerToken";
@@ -41,42 +40,42 @@ export class StartGame {
     this.#clock = clock;
   }
 
-  /** トークンの持ち主がホストの部屋のゲームを始める。始められなければ RoomError の Result で返す。 */
-  async execute(input: StartGameInput): Promise<Result<StartGameOutput, RoomError>> {
+  /**
+   * トークンの持ち主がホストの部屋のゲームを始める。
+   * 始められなければ RoomError を throw する（domain が throw したものは捕まえずに伝える）。
+   */
+  async execute(input: StartGameInput): Promise<StartGameOutput> {
     const code = RoomCode.create(input.roomCode);
-    if (isFailure(code)) {
-      return failure(code.error);
-    }
     // 書式は検証しない。持ち主のいないトークンは集約が not_host にする
     const token = PlayerToken.create(input.playerToken);
     // 期限の判断と開始の時刻に同じ値を使う
     const now = this.#clock.now();
 
     for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt += 1) {
-      const room = await this.#repository.findByCode(code.value);
+      const room = await this.#repository.findByCode(code);
       if (room === undefined || room.isExpiredAt(now)) {
-        return failure(new RoomError("room_not_found", "Room was not found."));
+        getLogger().error("始めようとした部屋が無いか期限切れです", {
+          roomCode: code.value,
+          found: room !== undefined,
+        });
+        throw new RoomError("room_not_found", "Room was not found.");
       }
-      const started = room.start(token, now, this.#random);
-      if (isFailure(started)) {
-        return failure(started.error);
-      }
-      if (!started.value) {
+      if (!room.start(token, now, this.#random)) {
         // 既に始まっていた。何も変わっていないので保存せず、いまの部屋を返す
-        return success({ room: toRoomSnapshotDto(room) });
+        return { room: toRoomSnapshotDto(room) };
       }
       const saved = await this.#repository.save(room);
       if (isSuccess(saved)) {
-        return success({ room: toRoomSnapshotDto(room) });
+        return { room: toRoomSnapshotDto(room) };
       }
       // 衝突はほかの書き込みが先に成功したということ。読み直して、集約の判断からやり直す
       getLogger().warn("ゲームの開始がほかの書き込みと重なったため読み直します", {
-        roomCode: code.value.value,
+        roomCode: code.value,
         attempt,
       });
     }
     getLogger().error("ゲームの開始が書き込みの重なりで決まりませんでした", {
-      roomCode: code.value.value,
+      roomCode: code.value,
       attempts: MAX_START_ATTEMPTS,
     });
     throw new Error("Could not start the game after repeated save conflicts.");

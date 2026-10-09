@@ -1,24 +1,37 @@
-import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
-import { describe, expect, it } from "vitest";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { RoomError } from "../../errors/RoomError";
 import { Nickname } from "./Nickname";
 
+const originalLogger = getLogger();
+let memoryLogger: MemoryLogger;
+
+beforeEach(() => {
+  memoryLogger = new MemoryLogger();
+  setLogger(memoryLogger);
+});
+
+afterEach(() => {
+  setLogger(originalLogger);
+});
+
 function valueOf(input: string): string {
-  const result = Nickname.create(input);
-  if (!isSuccess(result)) throw new Error("expected success");
-  return result.value.value;
+  return Nickname.create(input).value;
 }
 
 function errorCodeOf(input: string): string {
-  const result = Nickname.create(input);
-  if (!isFailure(result)) throw new Error("expected failure");
-  return result.error.code;
+  try {
+    Nickname.create(input);
+  } catch (error) {
+    if (error instanceof RoomError) return error.code;
+    throw error;
+  }
+  throw new Error("expected RoomError");
 }
 
 function make(input: string): Nickname {
-  const result = Nickname.create(input);
-  if (!isSuccess(result)) throw new Error("expected success");
-  return result.value;
+  return Nickname.create(input);
 }
 
 const FAMILY = "👨‍👩‍👧‍👦";
@@ -66,6 +79,19 @@ describe("create", () => {
 
   it("名前の途中の空白は残す", () => {
     expect(valueOf("たろう じろう")).toBe("たろう じろう");
+  });
+
+  it("拒否する前に、入力された値を error のログに出す", () => {
+    errorCodeOf(" ");
+    errorCodeOf("じゅげむじゅげむごこう");
+    expect(memoryLogger.entries).toEqual([
+      { level: "error", message: "ニックネームが空です", context: { value: " " } },
+      {
+        level: "error",
+        message: "ニックネームが長すぎます",
+        context: { value: "じゅげむじゅげむごこう" },
+      },
+    ]);
   });
 });
 
