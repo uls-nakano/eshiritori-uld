@@ -1,5 +1,4 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, getLogger, isFailure, isSuccess, success } from "@eshiritori/shared-kernel";
+import { getLogger, isSuccess } from "@eshiritori/shared-kernel";
 
 import type { RandomSource } from "../domain/random/RandomSource";
 import { Nickname } from "../domain/room/Nickname";
@@ -53,29 +52,27 @@ export class JoinRoom {
     this.#publisher = publisher;
   }
 
-  /** 部屋コードの部屋にニックネームで加わる。入れなければ RoomError の Result で返す。 */
-  async execute(input: JoinRoomInput): Promise<Result<JoinRoomOutput, RoomError>> {
+  /**
+   * 部屋コードの部屋にニックネームで加わる。
+   * 入れなければ RoomError を throw する（domain が throw したものは捕まえずに伝える）。
+   */
+  async execute(input: JoinRoomInput): Promise<JoinRoomOutput> {
     // 入力だけで決まる誤りは、DB を読む前に返す。部屋コードを先にするのは入力欄の並びに合わせるため
     const code = RoomCode.create(input.roomCode);
-    if (isFailure(code)) {
-      return failure(code.error);
-    }
     const nickname = Nickname.create(input.nickname);
-    if (isFailure(nickname)) {
-      return failure(nickname.error);
-    }
     // 期限の判断と参加の時刻に同じ値を使う
     const now = this.#clock.now();
 
     for (let attempt = 1; attempt <= MAX_JOIN_ATTEMPTS; attempt += 1) {
-      const room = await this.#repository.findByCode(code.value);
+      const room = await this.#repository.findByCode(code);
       if (room === undefined || room.isExpiredAt(now)) {
-        return failure(new RoomError("room_not_found", "Room was not found."));
+        getLogger().error("入ろうとした部屋が無いか期限切れです", {
+          roomCode: code.value,
+          found: room !== undefined,
+        });
+        throw new RoomError("room_not_found", "Room was not found.");
       }
-      const joined = room.join(nickname.value, now, this.#random);
-      if (isFailure(joined)) {
-        return failure(joined.error);
-      }
+      const joined = room.join(nickname, now, this.#random);
       const saved = await this.#repository.save(room);
       if (isSuccess(saved)) {
         const snapshot = toRoomSnapshotDto(room);
@@ -84,24 +81,24 @@ export class JoinRoom {
           await this.#publisher.publishMemberJoined(snapshot);
         } catch (error) {
           getLogger().warn("メンバーが加わったことの通知に失敗しました", {
-            roomCode: code.value.value,
+            roomCode: code.value,
             error,
           });
         }
-        return success({
+        return {
           room: snapshot,
-          playerId: joined.value.playerId.value,
-          playerToken: joined.value.token.value,
-        });
+          playerId: joined.playerId.value,
+          playerToken: joined.token.value,
+        };
       }
       // 衝突はほかの書き込みが先に成功したということ。読み直して、集約の判断からやり直す
       getLogger().warn("部屋への参加がほかの書き込みと重なったため読み直します", {
-        roomCode: code.value.value,
+        roomCode: code.value,
         attempt,
       });
     }
     getLogger().error("部屋への参加が書き込みの重なりで決まりませんでした", {
-      roomCode: code.value.value,
+      roomCode: code.value,
       attempts: MAX_JOIN_ATTEMPTS,
     });
     throw new Error("Could not join the room after repeated save conflicts.");
