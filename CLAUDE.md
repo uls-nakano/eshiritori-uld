@@ -56,6 +56,7 @@
 層と package の置き場（予定を含む）・技術の選定・ローカルと AWS の対応は [docs/architecture/](docs/architecture/README.md) にあります（置き場の規約は [rules/architecture](rules/architecture/)）。app はまだありません。package・app を作った段で、ここに 1 行ずつ追記します。
 
 - `docs/` — 目的（`product/`）・アーキテクチャ（`architecture/`）・ユースケース記述（`usecases/`）・ジャーニー（`journeys/`）・ドメインモデルと用語集（`domain/`）
+- `packages/room/` — 部屋の作成・参加・ゲームの開始を扱う業務 module（`domain` `application` `adapters` `errors` を置く）
 - `packages/shared-kernel/` — `DomainError` 基底・`Result` など、module をまたぐ最小限の共通物
 - `rules/` — 規約（標準 `standard.md` + プロジェクト `project.md`）
 - `.designs/` — 開発フローの記録（ログ資料）
