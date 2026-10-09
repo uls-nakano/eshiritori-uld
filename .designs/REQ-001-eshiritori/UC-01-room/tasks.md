@@ -35,7 +35,7 @@
 
 ### Phase 1: 土台
 
-- [ ] 1.1.1 リポジトリの検証コマンドと shared kernel の土台（`DomainError`、`Result`）
+- [x] 1.1.1 リポジトリの検証コマンドと shared kernel の土台（`DomainError`、`Result`）
   - 観測点: shared kernel の単体テスト
   - 変更ファイル: `package.json`（workspaces・検証コマンド・Prettier の設定）、`package-lock.json`、`tsconfig.base.json`、`eslint.config.js`、`vitest.config.ts`、`.dependency-cruiser.cjs`、`packages/shared-kernel/{package.json,tsconfig.json,src/index.ts,src/DomainError.ts,src/DomainError.test.ts,src/Result.ts,src/Result.test.ts}`、`CLAUDE.md`・`AGENTS.md`（構成）（15 件。うち `package-lock.json` は生成物）
   - 同期する生き資料: `CLAUDE.md` / `AGENTS.md` の「構成」、検証コマンドの内訳が `rules/testing` の「検証コマンド」と食い違えば `rules/testing/project.md`
