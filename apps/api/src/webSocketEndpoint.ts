@@ -3,7 +3,8 @@ import type { Duplex } from "node:stream";
 
 import type { DynamoDbConnectionRegistry, LocalWebSocketSender } from "@eshiritori/realtime";
 import type { Clock, GetRoom, GetRoomOutput } from "@eshiritori/room";
-import { getLogger, isFailure } from "@eshiritori/shared-kernel";
+import { RoomError } from "@eshiritori/room";
+import { getLogger } from "@eshiritori/shared-kernel";
 
 import { roomNotificationMessage } from "./RealtimeRoomEventPublisher";
 
@@ -47,9 +48,14 @@ export function createWebSocketUpgradeHandler(
       roomCode: url.searchParams.get("roomCode") ?? "",
       playerToken: url.searchParams.get("playerToken") ?? "",
     };
-    const member = await deps.getRoom.execute(credentials);
-    if (isFailure(member)) {
-      if (member.error.errorCode === "room_not_found") {
+    let member: GetRoomOutput;
+    try {
+      member = await deps.getRoom.execute(credentials);
+    } catch (error) {
+      if (!(error instanceof RoomError)) {
+        throw error;
+      }
+      if (error.errorCode === "room_not_found") {
         rejectUpgrade(socket, 404, "Not Found");
       } else {
         rejectUpgrade(socket, 403, "Forbidden");
@@ -59,7 +65,7 @@ export function createWebSocketUpgradeHandler(
 
     // 登録が終わる前に閉じられても登録が残らないよう、切断の処理は登録を待ってから消す
     let registered: Promise<void> = Promise.resolve();
-    const roomCode = member.value.room.code;
+    const roomCode = member.room.code;
     const accepting = deps.sender.accept(request, socket, head, (closedId) => {
       void registered
         .then(() => deps.registry.remove(roomCode, closedId))
@@ -74,19 +80,20 @@ export function createWebSocketUpgradeHandler(
     const connectionId = await accepting;
     state.accepted = true;
     registered = deps.registry.register(
-      { roomCode, connectionId, playerId: member.value.playerId },
+      { roomCode, connectionId, playerId: member.playerId },
       deps.clock.now(),
     );
     await registered;
 
     // 登録の後に読み直す。登録の前の写しを送ると、その間に入った人を取りこぼす
-    const current = await deps.getRoom.execute(credentials);
-    await sendConnected(
-      deps,
-      roomCode,
-      connectionId,
-      isFailure(current) ? member.value : current.value,
-    );
+    // 読み直しが業務上の理由（期限切れなど）で失敗したら、登録の前に読んだ写しを送る
+    const current = await deps.getRoom.execute(credentials).catch((error: unknown) => {
+      if (error instanceof RoomError) {
+        return member;
+      }
+      throw error;
+    });
+    await sendConnected(deps, roomCode, connectionId, current);
   }
 
   return (request, socket, head) => {

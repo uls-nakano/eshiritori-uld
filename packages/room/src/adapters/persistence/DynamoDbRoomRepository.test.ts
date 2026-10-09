@@ -42,10 +42,7 @@ function newRoom(names: readonly string[] = ["あや"]): Room {
   const [first, ...rest] = names;
   const room = Room.create(nicknameOf(first ?? "あや"), roundCountOf(1), ROOM_CREATED_AT, random);
   for (const name of rest) {
-    const joined = room.join(nicknameOf(name), ROOM_CREATED_AT, random);
-    if (!isSuccess(joined)) {
-      throw new Error(`failed to join: ${name}`);
-    }
+    room.join(nicknameOf(name), ROOM_CREATED_AT, random);
   }
   return room;
 }
@@ -120,14 +117,15 @@ describe("save", () => {
     await repository.save(room);
     const first = await mustFind(room);
     const second = await mustFind(room);
-    expect(isSuccess(first.join(nicknameOf("b1"), ROOM_CREATED_AT, random))).toBe(true);
-    expect(isSuccess(second.join(nicknameOf("b2"), ROOM_CREATED_AT, random))).toBe(true);
+    first.join(nicknameOf("b1"), ROOM_CREATED_AT, random);
+    second.join(nicknameOf("b2"), ROOM_CREATED_AT, random);
     expect(isSuccess(await repository.save(first))).toBe(true);
     const result = await repository.save(second);
     expect(isFailure(result) && result.error).toBe("save_conflict");
     const reread = await mustFind(room);
-    const joined = reread.join(nicknameOf("b2"), ROOM_CREATED_AT, random);
-    expect(isFailure(joined) && joined.error.code).toBe("room.room_full");
+    expect(() => reread.join(nicknameOf("b2"), ROOM_CREATED_AT, random)).toThrow(
+      expect.objectContaining({ code: "room.room_full" }),
+    );
   });
 
   it("保存した後の同じ部屋（インスタンス）をもう一度保存すると衝突を返す", async () => {
@@ -168,8 +166,7 @@ describe("findByCode", () => {
 
   it("始まった部屋を、描く順の並びと始まった状態で返す", async () => {
     const room = newRoom(["あや", "いけ", "うみ"]);
-    const started = room.start(room.host.token, ROOM_CREATED_AT, random);
-    expect(isSuccess(started)).toBe(true);
+    expect(room.start(room.host.token, ROOM_CREATED_AT, random)).toBe(true);
     await repository.save(room);
     const found = await mustFind(room);
     expect(found.status.hasStarted()).toBe(true);
