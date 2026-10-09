@@ -45,7 +45,7 @@
 
 ### Phase 2: domain の値と共通の Logger
 
-- [ ] 1.2.1 room package の雛形・エラーコードと、名乗り・周回数・進行状態の値（`Nickname`、`RoundCount`、`RoomStatus`、`RoomErrorCode`、`RoomError`）
+- [x] 1.2.1 room package の雛形・エラーコードと、名乗り・周回数・進行状態の値（`Nickname`、`RoundCount`、`RoomStatus`、`RoomErrorCode`、`RoomError`）
   - 観測点: domain の単体テスト
   - 変更ファイル: `packages/room/{package.json,tsconfig.json,src/index.ts}`、`packages/room/src/errors/{RoomErrorCode.ts,RoomError.ts}`、`packages/room/src/domain/room/{Nickname,RoundCount,RoomStatus}.ts` とそれぞれの `.test.ts`、`.dependency-cruiser.cjs`、`package-lock.json`、`CLAUDE.md`・`AGENTS.md`（構成）（15 件）
   - 同期する生き資料: `docs/domain/room/room-部屋集約.md`（実装で図と変わった場合）、`CLAUDE.md` / `AGENTS.md` の「構成」

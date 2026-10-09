@@ -40,6 +40,20 @@ module.exports = {
       to: { pathNot: "^packages/shared-kernel/" },
     },
     {
+      name: "room-depends-only-on-shared-kernel",
+      severity: "error",
+      comment: "room が依存してよい package は shared-kernel だけ",
+      from: { path: "^packages/room/" },
+      to: { path: "^packages/", pathNot: "^packages/(room|shared-kernel)/" },
+    },
+    {
+      name: "errors-not-to-layers",
+      severity: "error",
+      comment: "errors は各層から import される。逆向きを許さない",
+      from: { path: "^packages/[^/]+/src/errors/" },
+      to: { path: "^packages/[^/]+/src/(domain|application|adapters)/" },
+    },
+    {
       name: "domain-is-pure",
       severity: "error",
       comment: "Domain は外部ライブラリに依存しない",
