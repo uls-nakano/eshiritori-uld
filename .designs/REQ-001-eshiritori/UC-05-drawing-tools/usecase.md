@@ -1,6 +1,6 @@
 # ユースケース定義: 描画の道具を使い分ける
 
-> 置き場: `.designs/REQ-001-eshiritori/UC-04-drawing-tools/usecase.md`
+> 置き場: `.designs/REQ-001-eshiritori/UC-05-drawing-tools/usecase.md`
 > **観客は業務側です。** 技術仕様（アーキテクチャ・DB 設計・クラス構成）はここに書かず、設計フェーズの成果物に書きます。
 
 ## 概要
@@ -21,7 +21,7 @@
 
 | 画面名 | モック・参照先 | 補足 |
 | --- | --- | --- |
-| ゲーム画面（描き手） | `../UC-02-draw-and-guess/mockups/game.html` | 道具の並びに「消しゴム」「1 手戻す」を加える。ペンと消しゴムは切り替え式 |
+| ゲーム画面（描き手） | `../UC-02-draw/mockups/game.html` | 道具の並びに「消しゴム」「1 手戻す」を加える。ペンと消しゴムは切り替え式 |
 
 ## 要件
 

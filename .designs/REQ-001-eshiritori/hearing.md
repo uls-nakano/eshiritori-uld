@@ -304,7 +304,7 @@
 | 画面名 | 所在 | 種別 |
 | --- | --- | --- |
 | 部屋の入口・待機室 | `UC-01-room/mockups/room.html` | HTML ラフ（スマートフォン幅） |
-| ゲーム画面・結果 | `UC-02-draw-and-guess/mockups/game.html` | HTML ラフ（スマートフォン幅） |
+| ゲーム画面・結果 | `UC-02-draw/mockups/game.html` | HTML ラフ（スマートフォン幅） |
 
 ## その他
 

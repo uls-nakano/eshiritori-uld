@@ -1,6 +1,6 @@
-# ヒアリングシート: 絵を描いて当てる（追加ヒアリング）
+# ヒアリングシート: 絵を描いてみんなに見せる（追加ヒアリング）
 
-> 置き場: `.designs/REQ-001-eshiritori/UC-02-draw-and-guess/hearing.md`
+> 置き場: `.designs/REQ-001-eshiritori/UC-02-draw/hearing.md`
 > REQ 全体のヒアリング（`../hearing.md`）で聞いていなかった論点を、チャットで確認して書き起こしたものです。
 
 ## 追加で確認した事項

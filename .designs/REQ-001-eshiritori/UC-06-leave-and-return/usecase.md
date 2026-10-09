@@ -1,6 +1,6 @@
 # ユースケース定義: 途中で抜ける・戻る
 
-> 置き場: `.designs/REQ-001-eshiritori/UC-05-leave-and-return/usecase.md`
+> 置き場: `.designs/REQ-001-eshiritori/UC-06-leave-and-return/usecase.md`
 > **観客は業務側です。** 技術仕様（アーキテクチャ・DB 設計・クラス構成）はここに書かず、設計フェーズの成果物に書きます。
 
 ## 概要
@@ -21,7 +21,7 @@
 
 | 画面名 | モック・参照先 | 補足 |
 | --- | --- | --- |
-| 待機室・ゲーム画面・結果画面 | `../UC-01-room/mockups/room.html`、`../UC-02-draw-and-guess/mockups/game.html` | 各画面に「抜ける」操作を加える。メンバー一覧・得点表で、接続が切れている人に「切断中」の印を付ける |
+| 待機室・ゲーム画面・結果画面 | `../UC-01-room/mockups/room.html`、`../UC-02-draw/mockups/game.html` | 各画面に「抜ける」操作を加える。メンバー一覧・得点表で、接続が切れている人に「切断中」の印を付ける |
 
 ## 要件
 
