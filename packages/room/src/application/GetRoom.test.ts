@@ -1,5 +1,4 @@
 import type { Result } from "@eshiritori/shared-kernel";
-import { isFailure, isSuccess } from "@eshiritori/shared-kernel";
 import { describe, expect, it } from "vitest";
 
 import { ROOM_CREATED_AT, roomWith } from "../../fixtures/roomFixtures";
@@ -49,8 +48,8 @@ describe("execute", () => {
         playerToken: member?.token.value ?? "",
       });
 
-      expect(isSuccess(result) && result.value.playerId).toBe(member?.playerId.value);
-      expect(isSuccess(result) && result.value.room).toEqual({
+      expect(result.playerId).toBe(member?.playerId.value);
+      expect(result.room).toEqual({
         code: room.code.value,
         roundCount: 1,
         hostPlayerId: room.host.playerId.value,
@@ -71,7 +70,7 @@ describe("execute", () => {
       playerToken: room.host.token.value,
     });
 
-    const serialized = JSON.stringify(isSuccess(result) && result.value);
+    const serialized = JSON.stringify(result);
     for (const member of room.members) {
       expect(serialized).not.toContain(member.token.value);
     }
@@ -101,9 +100,9 @@ describe("execute", () => {
   ])("$label とき room_not_found を返す", async ({ roomCode, room }) => {
     const { useCase } = getRoomWith(room());
 
-    const result = await useCase.execute({ roomCode, playerToken: "x" });
-
-    expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+    await expect(useCase.execute({ roomCode, playerToken: "x" })).rejects.toThrow(
+      expect.objectContaining({ code: "room.room_not_found" }),
+    );
   });
 
   it("24 時間に 1 ミリ秒足りない部屋は取れる", async () => {
@@ -115,7 +114,7 @@ describe("execute", () => {
       playerToken: room.host.token.value,
     });
 
-    expect(isSuccess(result)).toBe(true);
+    expect(result.room.code).toEqual(expect.any(String));
   });
 
   it.each(["どのメンバーのものでもないトークン", ""])(
@@ -123,9 +122,9 @@ describe("execute", () => {
     async (playerToken) => {
       const { useCase } = getRoomWith(roomWith(["たろう"]));
 
-      const result = await useCase.execute({ roomCode: "ABC123", playerToken });
-
-      expect(isFailure(result) && result.error.code).toBe("room.not_member");
+      await expect(useCase.execute({ roomCode: "ABC123", playerToken })).rejects.toThrow(
+        expect.objectContaining({ code: "room.not_member" }),
+      );
     },
   );
 
@@ -133,11 +132,11 @@ describe("execute", () => {
     const room = roomWith(["たろう"], new Date(NOW.getTime() - 24 * HOUR));
 
     const { useCase } = getRoomWith(room);
-    const result = await useCase.execute({
-      roomCode: "ABC123",
-      playerToken: room.host.token.value,
-    });
-
-    expect(isFailure(result) && result.error.code).toBe("room.room_not_found");
+    await expect(
+      useCase.execute({
+        roomCode: "ABC123",
+        playerToken: room.host.token.value,
+      }),
+    ).rejects.toThrow(expect.objectContaining({ code: "room.room_not_found" }));
   });
 });

@@ -1,5 +1,6 @@
 import type { components } from "@eshiritori/api-contract";
-import type { CreateRoom, GetRoom, JoinRoom, RoomError, RoomSnapshotDto } from "@eshiritori/room";
+import type { CreateRoom, GetRoom, JoinRoom, RoomSnapshotDto } from "@eshiritori/room";
+import { RoomError } from "@eshiritori/room";
 import type { Result } from "@eshiritori/shared-kernel";
 import { failure, getLogger, isFailure, success } from "@eshiritori/shared-kernel";
 import type { Context } from "hono";
@@ -105,14 +106,10 @@ export function createApp(useCases: ApiUseCases): Hono {
         400,
       );
     }
-    const result = await useCases.createRoom.execute({
+    const { room, playerId, playerToken } = await useCases.createRoom.execute({
       nickname: body.value.nickname,
       roundCount: body.value.roundCount,
     });
-    if (isFailure(result)) {
-      return roomErrorResponse(c, result.error);
-    }
-    const { room, playerId, playerToken } = result.value;
     return c.json(
       {
         room: toRoomSnapshot(room),
@@ -136,14 +133,10 @@ export function createApp(useCases: ApiUseCases): Hono {
         400,
       );
     }
-    const result = await useCases.joinRoom.execute({
+    const { room, playerId, playerToken } = await useCases.joinRoom.execute({
       roomCode: c.req.param("roomCode"),
       nickname: body.value.nickname,
     });
-    if (isFailure(result)) {
-      return roomErrorResponse(c, result.error);
-    }
-    const { room, playerId, playerToken } = result.value;
     return c.json(
       {
         room: toRoomSnapshot(room),
@@ -154,23 +147,24 @@ export function createApp(useCases: ApiUseCases): Hono {
   });
 
   app.get("/rooms/:roomCode", async (c) => {
-    const result = await useCases.getRoom.execute({
+    const { room, playerId } = await useCases.getRoom.execute({
       roomCode: c.req.param("roomCode"),
       playerToken: readBearerToken(c),
     });
-    if (isFailure(result)) {
-      return roomErrorResponse(c, result.error);
-    }
     return c.json(
       {
-        room: toRoomSnapshot(result.value.room),
-        playerId: result.value.playerId,
+        room: toRoomSnapshot(room),
+        playerId,
       } satisfies components["schemas"]["GetRoomResponse"],
       200,
     );
   });
 
   app.onError((error, c) => {
+    // 業務上の失敗（RoomError）は domain が throw 直前に記録しているので、ここではエラーコードを応答に変えるだけ
+    if (error instanceof RoomError) {
+      return roomErrorResponse(c, error);
+    }
     getLogger().error("API の処理中に予期しない例外が起きました", {
       method: c.req.method,
       path: c.req.path,

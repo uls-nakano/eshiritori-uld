@@ -1,5 +1,4 @@
-import type { Result } from "@eshiritori/shared-kernel";
-import { failure, getLogger, success } from "@eshiritori/shared-kernel";
+import { getLogger } from "@eshiritori/shared-kernel";
 
 import { RoomError } from "../../errors/RoomError";
 import type { RandomSource } from "../random/RandomSource";
@@ -82,21 +81,30 @@ export class Room {
     return new Room(snapshot);
   }
 
-  /** 部屋に入る。入れなければ RoomError の Result で返す。 */
-  join(nickname: Nickname, now: Date, random: RandomSource): Result<Member, RoomError> {
+  /** 部屋に入る。入れなければ RoomError を throw する。 */
+  join(nickname: Nickname, now: Date, random: RandomSource): Member {
     if (this.#status.hasStarted()) {
-      return failure(new RoomError("game_already_started", "The game has already started."));
+      getLogger().error("ゲームが始まった部屋には入れません", { roomCode: this.#code.value });
+      throw new RoomError("game_already_started", "The game has already started.");
     }
     if (this.#members.length >= MAX_MEMBERS) {
-      return failure(new RoomError("room_full", "The room is full."));
+      getLogger().error("満員の部屋には入れません", {
+        roomCode: this.#code.value,
+        memberCount: this.#members.length,
+      });
+      throw new RoomError("room_full", "The room is full.");
     }
     if (this.#members.some((m) => m.isNamed(nickname))) {
-      return failure(new RoomError("nickname_taken", "The nickname is already taken."));
+      getLogger().error("同じニックネームのメンバーがいます", {
+        roomCode: this.#code.value,
+        nickname: nickname.value,
+      });
+      throw new RoomError("nickname_taken", "The nickname is already taken.");
     }
     const member = Member.create(nickname, random);
     this.#members = [...this.#members, member];
     this.#lastUpdatedAt = new Date(now.getTime());
-    return success(member);
+    return member;
   }
 
   /** トークンの持ち主のメンバー。いなければ undefined。 */
@@ -104,22 +112,33 @@ export class Room {
     return this.#members.find((m) => m.isHeldBy(token));
   }
 
-  /** ゲームを始める。今回の要求で始まったら true、既に始まっていれば false。 */
-  start(requesterToken: PlayerToken, now: Date, random: RandomSource): Result<boolean, RoomError> {
+  /**
+   * ゲームを始める。今回の要求で始まったら true、既に始まっていれば false。
+   * ホストでない人の要求と、人数が足りない場合は RoomError を throw する。
+   */
+  start(requesterToken: PlayerToken, now: Date, random: RandomSource): boolean {
     const requester = this.findMember(requesterToken);
     if (requester === undefined || !requester.playerId.equals(this.#hostPlayerId)) {
-      return failure(new RoomError("not_host", "Only the host can start the game."));
+      getLogger().error("ホストでない人がゲームを始めようとしました", {
+        roomCode: this.#code.value,
+        requesterPlayerId: requester?.playerId.value,
+      });
+      throw new RoomError("not_host", "Only the host can start the game.");
     }
     if (this.#status.hasStarted()) {
-      return success(false);
+      return false;
     }
     if (this.#members.length < MIN_MEMBERS_TO_START) {
-      return failure(new RoomError("not_enough_members", "At least 2 members are required."));
+      getLogger().error("人数が足りないのでゲームを始められません", {
+        roomCode: this.#code.value,
+        memberCount: this.#members.length,
+      });
+      throw new RoomError("not_enough_members", "At least 2 members are required.");
     }
     this.#members = shuffle(this.#members, random);
     this.#status = RoomStatus.started();
     this.#lastUpdatedAt = new Date(now.getTime());
-    return success(true);
+    return true;
   }
 
   /** 最後の更新から 24 時間以上たっているか。 */

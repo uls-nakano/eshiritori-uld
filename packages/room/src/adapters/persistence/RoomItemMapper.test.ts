@@ -1,4 +1,4 @@
-import { getLogger, isSuccess, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
+import { getLogger, MemoryLogger, setLogger } from "@eshiritori/shared-kernel";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ROOM_CREATED_AT, roomWith, sequenceRandom } from "../../../fixtures/roomFixtures";
@@ -24,10 +24,7 @@ const mapper = new RoomItemMapper();
 function startedRoom(): Room {
   const room = roomWith(["あや", "いけ", "うみ"]);
   const token = room.host.token;
-  const started = room.start(token, ROOM_CREATED_AT, sequenceRandom());
-  if (!isSuccess(started)) {
-    throw new Error("fixture start failed");
-  }
+  room.start(token, ROOM_CREATED_AT, sequenceRandom());
   return room;
 }
 
