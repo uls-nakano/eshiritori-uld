@@ -24,6 +24,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/rooms/{roomCode}/members": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * 部屋に入る
+     * @description 部屋コードの部屋に、ニックネームでメンバーとして加わる。
+     */
+    post: operations["joinRoom"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/rooms/{roomCode}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * 部屋の状態を取る
+     * @description 部屋のメンバーだけが取れる。保存はせず、部屋の期限を延ばさない。
+     */
+    get: operations["getRoom"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -37,6 +77,19 @@ export interface components {
     CreateRoomResponse: {
       room: components["schemas"]["RoomSnapshot"];
       player: components["schemas"]["PlayerCredential"];
+    };
+    JoinRoomRequest: {
+      /** @description 入る人のニックネーム。前後の空白を除いて 1〜10 文字（絵文字 1 つを 1 文字と数える）。範囲外は room.nickname_empty または room.nickname_too_long の 400 で返す。 */
+      nickname: string;
+    };
+    JoinRoomResponse: {
+      room: components["schemas"]["RoomSnapshot"];
+      player: components["schemas"]["PlayerCredential"];
+    };
+    GetRoomResponse: {
+      room: components["schemas"]["RoomSnapshot"];
+      /** @description 要求した本人のプレイヤー識別子。メンバー一覧のどれが自分かを決めるのに使う。 */
+      playerId: string;
     };
     RoomSnapshot: {
       /** @description 部屋コード。英大文字と数字 6 文字。 */
@@ -56,13 +109,16 @@ export interface components {
       playerToken: string;
     };
     ErrorResponse: {
-      /** @description 失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range など）、または request.invalid_json, request.invalid_body, server.internal_error。 */
+      /** @description 失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member など）、または request.invalid_json, request.invalid_body, server.internal_error。 */
       code: string;
       detail: string;
     };
   };
   responses: never;
-  parameters: never;
+  parameters: {
+    /** @description 部屋コード。大文字小文字・全角半角・前後の空白の違いはそろえて扱う。書式の誤りは room.room_not_found。 */
+    RoomCode: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -93,6 +149,119 @@ export interface operations {
       };
       /** @description 入力の誤り、または要求の形の誤り。 */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 予期しない失敗。 */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  joinRoom: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 部屋コード。大文字小文字・全角半角・前後の空白の違いはそろえて扱う。書式の誤りは room.room_not_found。 */
+        roomCode: components["parameters"]["RoomCode"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["JoinRoomRequest"];
+      };
+    };
+    responses: {
+      /** @description 部屋に加わった。 */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JoinRoomResponse"];
+        };
+      };
+      /** @description 入力の誤り、または要求の形の誤り。 */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 部屋が無い、または期限切れ（room.room_not_found）。 */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 満員（room.room_full）、ゲームの開始済み（room.game_already_started）、ニックネームの重複（room.nickname_taken）。 */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 予期しない失敗。 */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  getRoom: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 部屋コード。大文字小文字・全角半角・前後の空白の違いはそろえて扱う。書式の誤りは room.room_not_found。 */
+        roomCode: components["parameters"]["RoomCode"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 部屋の状態。 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GetRoomResponse"];
+        };
+      };
+      /** @description 部屋のメンバーでない（room.not_member）。トークンが無い・形が違う場合も同じ。 */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description 部屋が無い、または期限切れ（room.room_not_found）。 */
+      404: {
         headers: {
           [name: string]: unknown;
         };

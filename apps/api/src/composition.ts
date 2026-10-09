@@ -4,6 +4,8 @@ import {
   CreateRoom,
   CryptoRandomSource,
   DynamoDbRoomRepository,
+  GetRoom,
+  JoinRoom,
   roomTable,
 } from "@eshiritori/room";
 import { getLogger } from "@eshiritori/shared-kernel";
@@ -49,8 +51,11 @@ export function createDynamoDbClient(config: ApiConfig): DynamoDBClient {
 export function composeApp(config: ApiConfig): Hono {
   const client = DynamoDBDocumentClient.from(createDynamoDbClient(config));
   const repository = new DynamoDbRoomRepository(client, config.roomTableName);
-  const createRoom = new CreateRoom(repository, new CryptoRandomSource(), {
-    now: () => new Date(),
+  const random = new CryptoRandomSource();
+  const clock = { now: () => new Date() };
+  return createApp({
+    createRoom: new CreateRoom(repository, random, clock),
+    joinRoom: new JoinRoom(repository, random, clock),
+    getRoom: new GetRoom(repository, clock),
   });
-  return createApp({ createRoom });
 }

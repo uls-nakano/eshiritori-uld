@@ -102,7 +102,7 @@
 
 ### Phase 7: 入る・始める API
 
-- [ ] 1.7.1 部屋に入る API と部屋の状態を取る API（`JoinRoom`、`GetRoom` use case、route、OpenAPI の追記）
+- [x] 1.7.1 部屋に入る API と部屋の状態を取る API（`JoinRoom`、`GetRoom` use case、route、OpenAPI の追記）
   - 観測点: 結合テスト `tests/integration/uc-02-join-room.integration.test.ts`
   - 変更ファイル: `packages/api-contract/{openapi.yaml,src/generated/schema.ts}`、`packages/room/src/application/{JoinRoom.ts,JoinRoom.test.ts,GetRoom.ts,GetRoom.test.ts}`、`packages/room/src/index.ts`、`apps/api/src/{createApp.ts,composition.ts}`、`tests/integration/uc-02-join-room.integration.test.ts`、`scenarios.md`（結合テストへの対応）（11 件）
   - 同期する生き資料: なし

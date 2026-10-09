@@ -33,7 +33,98 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{roomCode}/members:
+    post:
+      operationId: joinRoom
+      summary: 部屋に入る
+      description: 部屋コードの部屋に、ニックネームでメンバーとして加わる。
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+      responses:
+        "201":
+          description: 部屋に加わった。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRoomResponse"
+        "400":
+          description: 入力の誤り、または要求の形の誤り。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 部屋が無い、または期限切れ（room.room_not_found）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 満員（room.room_full）、ゲームの開始済み（room.game_already_started）、ニックネームの重複（room.nickname_taken）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 予期しない失敗。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{roomCode}:
+    get:
+      operationId: getRoom
+      summary: 部屋の状態を取る
+      description: 部屋のメンバーだけが取れる。保存はせず、部屋の期限を延ばさない。
+      security:
+        - playerToken: []
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      responses:
+        "200":
+          description: 部屋の状態。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRoomResponse"
+        "403":
+          description: 部屋のメンバーでない（room.not_member）。トークンが無い・形が違う場合も同じ。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 部屋が無い、または期限切れ（room.room_not_found）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 予期しない失敗。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    playerToken:
+      type: http
+      scheme: bearer
+      description: 部屋を作る・入る応答の player.playerToken。Authorization ヘッダーに Bearer で載せる。
+  parameters:
+    RoomCode:
+      name: roomCode
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 部屋コード。大文字小文字・全角半角・前後の空白の違いはそろえて扱う。書式の誤りは room.room_not_found。
   schemas:
     CreateRoomRequest:
       type: object
@@ -53,6 +144,30 @@ components:
           $ref: "#/components/schemas/RoomSnapshot"
         player:
           $ref: "#/components/schemas/PlayerCredential"
+    JoinRoomRequest:
+      type: object
+      required: [nickname]
+      properties:
+        nickname:
+          type: string
+          description: 入る人のニックネーム。前後の空白を除いて 1〜10 文字（絵文字 1 つを 1 文字と数える）。範囲外は room.nickname_empty または room.nickname_too_long の 400 で返す。
+    JoinRoomResponse:
+      type: object
+      required: [room, player]
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+        player:
+          $ref: "#/components/schemas/PlayerCredential"
+    GetRoomResponse:
+      type: object
+      required: [room, playerId]
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+        playerId:
+          type: string
+          description: 要求した本人のプレイヤー識別子。メンバー一覧のどれが自分かを決めるのに使う。
     RoomSnapshot:
       type: object
       required: [code, roundCount, hostPlayerId, members]
@@ -92,6 +207,6 @@ components:
       properties:
         code:
           type: string
-          description: "失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range など）、または request.invalid_json, request.invalid_body, server.internal_error。"
+          description: "失敗の種類。room.<snake_case>（room.nickname_empty, room.nickname_too_long, room.round_count_out_of_range, room.room_not_found, room.room_full, room.game_already_started, room.nickname_taken, room.not_member など）、または request.invalid_json, request.invalid_body, server.internal_error。"
         detail:
           type: string
